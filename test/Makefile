@@ -1,12 +1,22 @@
 # Makefile
 # See https://docs.cocotb.org/en/stable/quickstart.html for more info
 
+# ==============================================================================
+# CONFIGURATION FOR CURRENT TEST
+# Modify these variables when switching to a new module or testbench:
+# PROJECT_SOURCES
+# TOPLEVEL
+# COCOTB_TEST_MODULES
+# ==============================================================================
+
 # Defaults
 SIM             ?= icarus
 FST             ?= -fst # Use more efficient FST format
 TOPLEVEL_LANG   ?= verilog
 SRC_DIR          = $(PWD)/../src
-PROJECT_SOURCES  = project.v
+
+#PROJECT_SOURCES  = project.v
+PROJECT_SOURCES  = pdm_detectors.v
 
 ifneq ($(GATES),yes)
 
@@ -34,10 +44,12 @@ endif
 
 # Include the testbench sources:
 VERILOG_SOURCES += $(PWD)/tb.v
-TOPLEVEL         = tb
+#TOPLEVEL         = tb
+TOPLEVEL         = pdm_detector
 
 # List test modules to run, separated by commas and without the .py suffix:
-COCOTB_TEST_MODULES = test
+# COCOTB_TEST_MODULES = test
+COCOTB_TEST_MODULES = tb_pdm_detector
 
 # Include cocotb's make rules to take care of the simulator setup
 include $(shell cocotb-config --makefiles)/Makefile.sim
