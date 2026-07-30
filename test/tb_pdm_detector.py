@@ -15,15 +15,16 @@ async def setup_dut(dut):
     dut.rst_n.value = 1
     await RisingEdge(dut.clk)
 
-async def run_noise_test(dut, testnumber, noise_pattern):
-    await setup_dut(dut)
-    
     # Activate the detector with a tx_trigger pulse
     dut.tx_trigger.value = 1
     await RisingEdge(dut.clk)
     dut.tx_trigger.value = 0
     await RisingEdge(dut.clk)
 
+async def run_noise_test(dut, testnumber, noise_pattern):
+    await setup_dut(dut)
+    
+    # Log
     dut._log.info(f"Starting Test {testnumber}: Noise rejection...")
 
     pattern_len = noise_pattern.bit_length()
@@ -39,12 +40,7 @@ async def run_noise_test(dut, testnumber, noise_pattern):
 async def run_echo_test(dut, testnumber, echo_pattern):
     await setup_dut(dut)
 
-    # Activate the detector with a tx_trigger pulse
-    dut.tx_trigger.value = 1
-    await RisingEdge(dut.clk)
-    dut.tx_trigger.value = 0
-    await RisingEdge(dut.clk)
-
+    # Log
     dut._log.info(f"Starting Test {testnumber}: Send valid echo pattern...")
 
     echo_pattern_len = echo_pattern.bit_length()
@@ -60,6 +56,7 @@ async def run_echo_test(dut, testnumber, echo_pattern):
             pulse_detected = True
             pulse_duration += 1
 
+    # Assert correctness
     assert pulse_detected, f"Error: No echo pulse detected in Test {testnumber}!"
     assert pulse_duration == 1, f"Error: Pulse duration in Test {testnumber} was {pulse_duration} cycles!"
     dut._log.info(f"-> SUCCESS: Test {testnumber} passed!")
