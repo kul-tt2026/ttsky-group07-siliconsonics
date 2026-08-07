@@ -47,15 +47,17 @@ endif
 # Include the testbench sources:
 VERILOG_SOURCES += $(PWD)/tb.v
 #TOPLEVEL         = tb
-TOPLEVEL         = pdm_detector
+#TOPLEVEL         = pdm_detector
 #TOPLEVEL         = constant_multiplier
 #TOPLEVEL         = down_shifter
+TOPLEVEL         = pdm_detector_holdoff
 
 # List test modules to run, separated by commas and without the .py suffix:
 #COCOTB_TEST_MODULES = test
-COCOTB_TEST_MODULES = tb_pdm_detector
+#COCOTB_TEST_MODULES = tb_pdm_detector
 #COCOTB_TEST_MODULES = tb_multiplier
 #COCOTB_TEST_MODULES = tb_shifter
+COCOTB_TEST_MODULES = tb_pdm_detector_holdoff
 
 # Include cocotb's make rules to take care of the simulator setup
 include $(shell cocotb-config --makefiles)/Makefile.sim

@@ -2,6 +2,10 @@ import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
 
+from pathlib import Path
+import matplotlib.pyplot as plt
+import numpy as np
+
 async def setup_dut(dut):
     """Helper function to initialize and reset the DUT."""
     clock = Clock(dut.clk, 10, unit="ns")
