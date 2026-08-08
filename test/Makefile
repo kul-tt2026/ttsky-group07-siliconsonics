@@ -14,10 +14,11 @@ SIM             ?= icarus
 FST             ?= -fst # Use more efficient FST format
 TOPLEVEL_LANG   ?= verilog
 SRC_DIR          = $(PWD)/../src
+COMPILE_ARGS     += -I$(SRC_DIR)
 
 #PROJECT_SOURCES  = project.v
 #PROJECT_SOURCES  = pdm_detectors.v
-PROJECT_SOURCES  = echo_timing.v
+PROJECT_SOURCES  = project.v #echo_timing.v
 #PROJECT_SOURCES  = multiplier.v
 #PROJECT_SOURCES  = shifter.v
 
@@ -47,8 +48,9 @@ endif
 
 # Include the testbench sources:
 #VERILOG_SOURCES += $(PWD)/tb.v
-VERILOG_SOURCES += $(PWD)/tb_echo_timing.v
-TOPLEVEL         = tb
+#VERILOG_SOURCES += $(PWD)/tb_echo_timing.v
+TOPLEVEL = tt_um_example
+#TOPLEVEL         = tb
 #TOPLEVEL         = pdm_detector
 #TOPLEVEL         = constant_multiplier
 #TOPLEVEL         = down_shifter
