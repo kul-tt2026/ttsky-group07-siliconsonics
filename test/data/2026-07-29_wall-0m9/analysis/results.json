@@ -1,0 +1,117 @@
+{
+  "params": {
+    "decim": 32,
+    "fdrive": 40000,
+    "guard_s": 0.002
+  },
+  "truth_ranges_m": [
+    0.9
+  ],
+  "captures": [
+    {
+      "file": "raw/capture_000.pdm",
+      "n_bytes": 524288,
+      "detections": [
+        {
+          "range_m": 0.824572,
+          "time_s": 0.004808,
+          "index": 601
+        }
+      ],
+      "truth_match": [
+        {
+          "truth_m": 0.9,
+          "detected_m": 0.824572
+        }
+      ]
+    },
+    {
+      "file": "raw/capture_001.pdm",
+      "n_bytes": 524288,
+      "detections": [
+        {
+          "range_m": 0.8286880000000001,
+          "time_s": 0.004832,
+          "index": 604
+        },
+        {
+          "range_m": 1.6189600000000002,
+          "time_s": 0.00944,
+          "index": 1180
+        }
+      ],
+      "truth_match": [
+        {
+          "truth_m": 0.9,
+          "detected_m": 0.8286880000000001
+        }
+      ]
+    },
+    {
+      "file": "raw/capture_002.pdm",
+      "n_bytes": 524288,
+      "detections": [
+        {
+          "range_m": 0.827316,
+          "time_s": 0.004824,
+          "index": 603
+        },
+        {
+          "range_m": 1.6148440000000002,
+          "time_s": 0.009416,
+          "index": 1177
+        }
+      ],
+      "truth_match": [
+        {
+          "truth_m": 0.9,
+          "detected_m": 0.827316
+        }
+      ]
+    },
+    {
+      "file": "raw/capture_003.pdm",
+      "n_bytes": 524288,
+      "detections": [
+        {
+          "range_m": 0.83692,
+          "time_s": 0.00488,
+          "index": 610
+        },
+        {
+          "range_m": 1.6395400000000002,
+          "time_s": 0.00956,
+          "index": 1195
+        }
+      ],
+      "truth_match": [
+        {
+          "truth_m": 0.9,
+          "detected_m": 0.83692
+        }
+      ]
+    },
+    {
+      "file": "raw/capture_004.pdm",
+      "n_bytes": 524288,
+      "detections": [
+        {
+          "range_m": 0.83692,
+          "time_s": 0.00488,
+          "index": 610
+        },
+        {
+          "range_m": 1.6381679999999998,
+          "time_s": 0.009552,
+          "index": 1194
+        }
+      ],
+      "truth_match": [
+        {
+          "truth_m": 0.9,
+          "detected_m": 0.83692
+        }
+      ]
+    }
+  ]
+}

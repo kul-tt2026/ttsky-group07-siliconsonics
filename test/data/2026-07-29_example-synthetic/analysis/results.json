@@ -1,0 +1,115 @@
+{
+  "params": {
+    "decim": 32,
+    "fdrive": 40000,
+    "guard_s": 0.002
+  },
+  "truth_ranges_m": [
+    0.6,
+    1.4
+  ],
+  "captures": [
+    {
+      "file": "raw/capture_000.pdm",
+      "n_bytes": 65536,
+      "detections": [
+        {
+          "range_m": 0.622888,
+          "time_s": 0.003632,
+          "index": 454
+        },
+        {
+          "range_m": 1.4145320000000001,
+          "time_s": 0.008248,
+          "index": 1031
+        },
+        {
+          "range_m": 0.772436,
+          "time_s": 0.004504,
+          "index": 563
+        }
+      ],
+      "objects": [
+        {
+          "range_m": 0.6153920000000033,
+          "azimuth_deg": 15.0,
+          "time_s": 0.003632,
+          "power": 0.18268657042086278
+        },
+        {
+          "range_m": 1.4276159999999933,
+          "azimuth_deg": -10.0,
+          "time_s": 0.008248,
+          "power": 0.012087182223299329
+        },
+        {
+          "range_m": 0.652436,
+          "azimuth_deg": 15.0,
+          "time_s": 0.004504,
+          "power": 0.11279041406097035
+        }
+      ],
+      "truth_match": [
+        {
+          "truth_m": 0.6,
+          "detected_m": 0.622888
+        },
+        {
+          "truth_m": 1.4,
+          "detected_m": 1.4145320000000001
+        }
+      ]
+    },
+    {
+      "file": "raw/capture_001.pdm",
+      "n_bytes": 65536,
+      "detections": [
+        {
+          "range_m": 0.622888,
+          "time_s": 0.003632,
+          "index": 454
+        },
+        {
+          "range_m": 1.4145320000000001,
+          "time_s": 0.008248,
+          "index": 1031
+        },
+        {
+          "range_m": 0.772436,
+          "time_s": 0.004504,
+          "index": 563
+        }
+      ],
+      "objects": [
+        {
+          "range_m": 0.6153920000000033,
+          "azimuth_deg": 15.0,
+          "time_s": 0.003632,
+          "power": 0.18331234165948637
+        },
+        {
+          "range_m": 1.416639999999994,
+          "azimuth_deg": -10.0,
+          "time_s": 0.008248,
+          "power": 0.012031997717475247
+        },
+        {
+          "range_m": 0.652436,
+          "azimuth_deg": 15.0,
+          "time_s": 0.004504,
+          "power": 0.11288603737192711
+        }
+      ],
+      "truth_match": [
+        {
+          "truth_m": 0.6,
+          "detected_m": 0.622888
+        },
+        {
+          "truth_m": 1.4,
+          "detected_m": 1.4145320000000001
+        }
+      ]
+    }
+  ]
+}

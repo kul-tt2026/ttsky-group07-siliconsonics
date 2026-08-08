@@ -9,7 +9,7 @@ module clk_div_10 (
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            counter <= 1'b0;
+            counter <= 4'b0;
             tick_4mhz <= 1'b0;
         end
         else begin
@@ -23,6 +23,7 @@ endmodule
 
 module ref_sig (
     input wire clk,
+    input wire tick_4mhz,
     input wire rst_n,
     input wire restart,
     output reg ref_sin,
@@ -30,14 +31,14 @@ module ref_sig (
 );
     reg [5:0] index; // 0->49 (0 63)
 
-    always @(posedge clk or negedge rst_n or posedge restart) begin
+    always @(posedge clk or negedge rst_n) begin
         if ((!rst_n) || restart) begin
             index <= 6'd0;
             ref_cos <= 1'b1;
             ref_sin <= 1'b1;
         end
 
-        else begin
+        else if (tick_4mhz) begin
             // 40kHz cosine is 25 cycles ahead at 4MHz
             if (index == 6'd24) begin
                 ref_cos <= ~ref_cos;
@@ -58,6 +59,7 @@ endmodule
 
 module correlator (
     input wire clk,
+    input wire tick_4mhz,
     input wire rst_n,
     input wire restart,
     input wire new_window, // resets to +1 or -1 based on ref_pdm
@@ -67,16 +69,16 @@ module correlator (
 );
     wire comp = mic_pdm ^ ref_pdm;
 
-    always @(posedge clk or negedge rst_n or posedge restart) begin
+    always @(posedge clk or negedge rst_n) begin
         if ((!rst_n) || restart)
             cumsum <= 8'b0;
-        else if (new_window) begin
+        else if (tick_4mhz &&new_window) begin
             if (comp)
                 cumsum <= -1;
             else
                 cumsum <= 1;
         end
-        else begin
+        else if (tick_4mhz) begin
             // comp == 1 when NOT equal -> -1, otherwise +1
             if (comp)
                 cumsum <= cumsum - 1;
@@ -89,6 +91,7 @@ endmodule
 
 module windowed_iq_demodulator (
     input wire clk,
+    input wire tick_4mhz,
     input wire rst_n,
     input wire restart,
     input wire mic_pdm,
@@ -106,11 +109,12 @@ module windowed_iq_demodulator (
     reg [6:0] sample_index; // 0->99 (0 127)
     reg new_window_reg;
 
-    // resets correlators
+    // resets correlators, HI on first sample of each window, LO on subsequent samples
     wire new_window = new_window_reg;
 
     ref_sig reference_signals (
         .clk(clk),
+        .tick_4mhz(tick_4mhz),
         .rst_n(rst_n),
         .restart(restart),
         .ref_cos(ref_cos),
@@ -119,6 +123,7 @@ module windowed_iq_demodulator (
 
     correlator cos_correlator (
         .clk(clk),
+        .tick_4mhz(tick_4mhz),
         .rst_n(rst_n),
         .restart(restart),
         .new_window(new_window),
@@ -129,6 +134,7 @@ module windowed_iq_demodulator (
 
     correlator sin_correlator (
         .clk(clk),
+        .tick_4mhz(tick_4mhz),
         .rst_n(rst_n),
         .restart(restart),
         .new_window(new_window),
@@ -137,7 +143,7 @@ module windowed_iq_demodulator (
         .cumsum(corr_Q)
     );
 
-    always @(posedge clk or negedge rst_n or posedge restart) begin
+    always @(posedge clk or negedge rst_n) begin
         if (!rst_n || restart) begin
             window_counter <= 12'd0;
             sample_index <= 7'd0;
@@ -147,7 +153,7 @@ module windowed_iq_demodulator (
             I <= 8'd0;
             Q <= 8'd0;
         end
-        else begin
+        else if (tick_4mhz) begin
             iq_valid <= 1'b0;
             new_window_reg <= (sample_index == 7'd99);
 
@@ -169,6 +175,7 @@ endmodule
 
 module first_echo_timing (
     input wire clk,
+    input wire tick_4mhz,
     input wire rst_n,
     input wire restart,
     input wire mic_pdm,
@@ -187,6 +194,7 @@ module first_echo_timing (
 
     windowed_iq_demodulator mic_windowed_iq_demodulator (
         .clk(clk),
+        .tick_4mhz(tick_4mhz),
         .rst_n(rst_n),
         .restart(restart),
         .mic_pdm(mic_pdm),
@@ -196,17 +204,46 @@ module first_echo_timing (
         .window_counter(window_counter)
     );
 
-    always @(posedge clk or negedge rst_n or posedge restart) begin
+    always @(posedge clk or negedge rst_n) begin
         if ((!rst_n )|| restart) begin
             echo_window_index <= 12'd0;
             echo_found <= 1'b0;
         end
-        else if (iq_valid && !(echo_found)) begin
+        else if (tick_4mhz && iq_valid && !(echo_found)) begin
             if ((sig_strength >= 8'd16) && (window_counter >= 12'd64)) begin // 16: empirical noise/echo threshold, 64: empirical echo_end threshold
                 echo_window_index <= window_counter;
                 echo_found <= 1'b1;
             end
         end
     end
+
+endmodule
+
+
+module main (
+    input wire clk,
+    input wire rst_n,
+    input wire restart,
+    input wire mic_pdm,
+    output wire [11:0] echo_window_index,
+    output wire echo_found
+);
+    wire tick_4mhz;
+
+    clk_div_10 clock_divider (
+        .clk(clk),
+        .rst_n(rst_n),
+        .tick_4mhz(tick_4mhz)
+    );
+
+    first_echo_timing echo_timing (
+        .clk(clk),
+        .tick_4mhz(tick_4mhz),
+        .rst_n(rst_n),
+        .restart(restart),
+        .mic_pdm(mic_pdm),
+        .echo_window_index(echo_window_index),
+        .echo_found(echo_found)
+    );
 
 endmodule

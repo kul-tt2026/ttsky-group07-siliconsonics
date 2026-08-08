@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "kind": "hardware",
+  "created": "2026-07-29T17:13:30",
+  "description": "",
+  "params": {
+    "decim": 32,
+    "fdrive": 40000,
+    "guard_s": 0.002,
+    "pdm_hz": 4000000,
+    "baud": 3000000
+  },
+  "ground_truth": {
+    "objects": []
+  },
+  "captures": [
+    {
+      "file": "raw/capture_000.pdm",
+      "time": "2026-07-29T17:13:32",
+      "n_bytes": 524288
+    },
+    {
+      "file": "raw/capture_001.pdm",
+      "time": "2026-07-29T17:13:47",
+      "n_bytes": 524288
+    },
+    {
+      "file": "raw/capture_002.pdm",
+      "time": "2026-07-29T17:13:49",
+      "n_bytes": 524288
+    },
+    {
+      "file": "raw/capture_003.pdm",
+      "time": "2026-07-29T17:13:51",
+      "n_bytes": 524288
+    },
+    {
+      "file": "raw/capture_004.pdm",
+      "time": "2026-07-29T17:13:53",
+      "n_bytes": 524288
+    },
+    {
+      "file": "raw/capture_005.pdm",
+      "time": "2026-07-29T17:13:55",
+      "n_bytes": 524288
+    }
+  ]
+}

@@ -1,0 +1,137 @@
+{
+  "params": {
+    "decim": 32,
+    "fdrive": 40000,
+    "guard_s": 0.002
+  },
+  "truth_ranges_m": [
+    0.88
+  ],
+  "captures": [
+    {
+      "file": "raw/capture_000.pdm",
+      "n_bytes": 524288,
+      "detections": [
+        {
+          "range_m": 0.876708,
+          "time_s": 0.005112,
+          "index": 639
+        }
+      ],
+      "objects": [
+        {
+          "range_m": 0.8774440000000036,
+          "azimuth_deg": 0.0,
+          "time_s": 0.005112,
+          "power": 0.14743926207556762
+        }
+      ],
+      "truth_match": [
+        {
+          "truth_m": 0.88,
+          "detected_m": 0.876708
+        }
+      ]
+    },
+    {
+      "file": "raw/capture_001.pdm",
+      "n_bytes": 524288,
+      "detections": [
+        {
+          "range_m": 0.876708,
+          "time_s": 0.005112,
+          "index": 639
+        }
+      ],
+      "objects": [
+        {
+          "range_m": 0.8774440000000036,
+          "azimuth_deg": 0.0,
+          "time_s": 0.005112,
+          "power": 0.16215436864006286
+        }
+      ],
+      "truth_match": [
+        {
+          "truth_m": 0.88,
+          "detected_m": 0.876708
+        }
+      ]
+    },
+    {
+      "file": "raw/capture_002.pdm",
+      "n_bytes": 524288,
+      "detections": [
+        {
+          "range_m": 0.876708,
+          "time_s": 0.005112,
+          "index": 639
+        }
+      ],
+      "objects": [
+        {
+          "range_m": 0.8774440000000036,
+          "azimuth_deg": 0.0,
+          "time_s": 0.005112,
+          "power": 0.15019787442543336
+        }
+      ],
+      "truth_match": [
+        {
+          "truth_m": 0.88,
+          "detected_m": 0.876708
+        }
+      ]
+    },
+    {
+      "file": "raw/capture_003.pdm",
+      "n_bytes": 524288,
+      "detections": [
+        {
+          "range_m": 0.876708,
+          "time_s": 0.005112,
+          "index": 639
+        }
+      ],
+      "objects": [
+        {
+          "range_m": 0.8774440000000036,
+          "azimuth_deg": 0.0,
+          "time_s": 0.005112,
+          "power": 0.15178551496414328
+        }
+      ],
+      "truth_match": [
+        {
+          "truth_m": 0.88,
+          "detected_m": 0.876708
+        }
+      ]
+    },
+    {
+      "file": "raw/capture_004.pdm",
+      "n_bytes": 524288,
+      "detections": [
+        {
+          "range_m": 0.876708,
+          "time_s": 0.005112,
+          "index": 639
+        }
+      ],
+      "objects": [
+        {
+          "range_m": 0.8774440000000036,
+          "azimuth_deg": 0.0,
+          "time_s": 0.005112,
+          "power": 0.1558614363659416
+        }
+      ],
+      "truth_match": [
+        {
+          "truth_m": 0.88,
+          "detected_m": 0.876708
+        }
+      ]
+    }
+  ]
+}
