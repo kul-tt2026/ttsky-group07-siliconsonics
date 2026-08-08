@@ -5,8 +5,6 @@
 
 `default_nettype none
 
-`include "echo_timing.v"
-
 module tt_um_example (
     input  wire [7:0] ui_in,    // Dedicated inputs
     output wire [7:0] uo_out,   // Dedicated outputs

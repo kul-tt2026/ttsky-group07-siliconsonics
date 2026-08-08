@@ -14,11 +14,11 @@ SIM             ?= icarus
 FST             ?= -fst # Use more efficient FST format
 TOPLEVEL_LANG   ?= verilog
 SRC_DIR          = $(PWD)/../src
-COMPILE_ARGS     += -I$(SRC_DIR)
+#COMPILE_ARGS     += -I$(SRC_DIR)
 
 #PROJECT_SOURCES  = project.v
 #PROJECT_SOURCES  = pdm_detectors.v
-PROJECT_SOURCES  = project.v #echo_timing.v
+PROJECT_SOURCES  = project.v echo_timing.v
 #PROJECT_SOURCES  = multiplier.v
 #PROJECT_SOURCES  = shifter.v
 
