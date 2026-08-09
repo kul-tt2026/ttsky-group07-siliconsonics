@@ -31,30 +31,6 @@ module ref_sig (
 );
     reg [5:0] index; // 0->49 (0 63)
 
-    // always @(posedge clk or negedge rst_n) begin
-    //     if ((!rst_n) || restart) begin
-    //         index <= 6'd0;
-    //         ref_cos <= 1'b1;
-    //         ref_sin <= 1'b1;
-    //     end
-
-    //     else if (tick_4mhz) begin
-    //              40kHz cosine is 25 cycles ahead at 4MHz
-    //         if (index == 6'd24) begin
-    //             ref_cos <= ~ref_cos;
-    //         end
-
-
-    //         if (index == 6'd49) begin
-    //             index <= 6'd0;
-    //             ref_sin <= ~ref_sin;
-    //         end
-    //         else begin
-    //             index <= index + 1;
-    //         end
-    //     end
-    // end
-
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             index <= 6'd0;
@@ -95,24 +71,6 @@ module correlator (
     output reg signed [7:0] cumsum // range: -100 to +100 => 7 bits + sign
 );
     wire comp = mic_pdm ^ ref_pdm;
-
-    // always @(posedge clk or negedge rst_n) begin
-    //     if ((!rst_n) || restart)
-    //         cumsum <= 8'b0;
-    //     else if (tick_4mhz &&new_window) begin
-    //         if (comp)
-    //             cumsum <= -1;
-    //         else
-    //             cumsum <= 1;
-    //     end
-    //     else if (tick_4mhz) begin
-    //         // comp == 1 when NOT equal -> -1, otherwise +1
-    //         if (comp)
-    //             cumsum <= cumsum - 1;
-    //         else
-    //             cumsum <= cumsum + 1;
-    //     end
-    // end
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -188,34 +146,6 @@ module windowed_iq_demodulator (
         .cumsum(corr_Q)
     );
 
-    // always @(posedge clk or negedge rst_n) begin
-    //     if (!rst_n || restart) begin
-    //         window_counter <= 12'd0;
-    //         sample_index <= 7'd0;
-    //         new_window_reg <= 1'b0;
-
-    //         iq_valid <= 1'b0;
-    //         I <= 8'd0;
-    //         Q <= 8'd0;
-    //     end
-    //     else if (tick_4mhz) begin
-    //         iq_valid <= 1'b0;
-    //         new_window_reg <= (sample_index == 7'd99);
-
-    //         if (sample_index == 7'd99) begin
-    //             I <= corr_I;
-    //             Q <= corr_Q;
-    //             iq_valid <= 1'b1;
-
-    //             sample_index <= 7'd0;
-    //             window_counter <= window_counter + 1;
-    //         end
-    //         else begin
-    //             sample_index <= sample_index + 1;
-    //         end
-    //     end
-    // end
-
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             window_counter <= 12'd0;
@@ -285,19 +215,6 @@ module first_echo_timing (
         .window_counter(window_counter)
     );
 
-    // always @(posedge clk or negedge rst_n) begin
-    //     if ((!rst_n )|| restart) begin
-    //         echo_window_index <= 12'd0;
-    //         echo_found <= 1'b0;
-    //     end
-    //     else if (tick_4mhz && iq_valid && !(echo_found)) begin
-    //         if ((sig_strength >= 8'd16) && (window_counter >= 12'd64)) begin // 16: empirical noise/echo threshold, 64: empirical echo_end threshold
-    //             echo_window_index <= window_counter;
-    //             echo_found <= 1'b1;
-    //         end
-    //     end
-    // end
-
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             echo_window_index <= 12'd0;
@@ -309,7 +226,7 @@ module first_echo_timing (
                 echo_found <= 1'b0;
             end
             else if (tick_4mhz && iq_valid && !echo_found) begin
-                if (sig_strength >= 8'd16 && window_counter >= 12'd64) begin
+                if (sig_strength >= 8'd16 && window_counter >= 12'd64) begin // 16: empirical noise/echo threshold, 64: empirical echo_end threshold
                     echo_window_index <= window_counter;
                     echo_found <= 1'b1;
                 end
