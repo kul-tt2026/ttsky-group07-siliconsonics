@@ -149,11 +149,63 @@ def expected_window_from_data(bits: list[int]) -> int:
 
 
 @cocotb.test()
-async def test_echo_timing_uses_mic1_window(dut):
+async def test_echo_timing_mic1_wall88(dut):
     data_path = (
         Path(__file__).resolve().parent
         / "data"
         / "2026-07-29_wall-0m88"
+        / "raw"
+        / "capture_000.pdm"
+    )
+    bits = load_mic1_bits(data_path)
+    expected_window = expected_window_from_data(bits)
+    expected_distance = expected_window * 100 / 4_000_000 * 343 / 2
+    dut._log.info(f"Expected window {expected_window} (~{expected_distance:.2f} m)")
+
+    # Clock (25 ns period = 40 MHz)
+    clock = Clock(dut.clk, 25, unit="ns")
+    cocotb.start_soon(clock.start())
+
+    # Reset
+    dut.rst_n.value = 0
+    dut.ui_in.value = 0
+    dut.ena.value = 1
+    dut.uio_in.value = 0
+    await Timer(100, unit="ns")
+
+    dut.rst_n.value = 1
+    await RisingEdge(dut.clk)
+
+    # Feed PDM bits: mic_pdm on ui_in[1], each bit held for 10 clock cycles
+    samples_to_send = min(len(bits), expected_window * WINDOW_SIZE + 100)
+    for idx in range(samples_to_send):
+        dut.ui_in.value = bits[idx] << 1
+        for _ in range(10):
+            await RisingEdge(dut.clk)
+
+    await Timer(200, unit="ns")
+
+    # Read raw outputs
+    uo_val = int(dut.uo_out.value)      # echo_window_index[7:0]
+    uio_val = int(dut.uio_out.value)    # {3'b0, echo_found, index[11:8]}
+
+    observed_window = uo_val | ((uio_val & 0x0F) << 8)
+    observed_found = (uio_val >> 4) & 0x1
+
+    assert observed_found == 1, (
+        f"Expected echo_found to go high, saw {observed_found}"
+    )
+    assert observed_window == expected_window, (
+        f"Expected echo window {expected_window}, got {observed_window}"
+    )
+
+
+@cocotb.test()
+async def test_echo_timing_mic1_synthetic(dut):
+    data_path = (
+        Path(__file__).resolve().parent
+        / "data"
+        / "2026-07-29_example-synthetic"
         / "raw"
         / "capture_000.pdm"
     )
