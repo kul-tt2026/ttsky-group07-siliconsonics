@@ -11,6 +11,12 @@ module tb ();
     $dumpfile("tb.fst");
     $dumpvars(0, tb);
     #1;
+
+    clk   = 1'b0;
+    rst_n = 1'b0;
+    ena   = 1'b1;       // Tiny Tapeout: ena is high when design is selected
+    ui_in = 8'b0;
+    uio_in = 8'b0;
   end
 
   // Wire up the inputs and outputs:
@@ -26,6 +32,9 @@ module tb ();
   wire VPWR = 1'b1;
   wire VGND = 1'b0;
 `endif
+
+  wire [11:0] echo_window_index = {uio_out[3:0], uo_out[7:0]};
+  wire echo_found = uio_out[4];
 
   // Replace tt_um_example with your module name:
   tt_um_example user_project (
@@ -47,3 +56,6 @@ module tb ();
   );
 
 endmodule
+
+
+

@@ -16,7 +16,7 @@ TOPLEVEL_LANG   ?= verilog
 SRC_DIR          = $(PWD)/../src
 
 #PROJECT_SOURCES  = project.v
-PROJECT_SOURCES  = pdm_detectors.v
+PROJECT_SOURCES  = project.v echo_timing.v pdm_detectors.v
 #PROJECT_SOURCES  = multiplier.v
 #PROJECT_SOURCES  = shifter.v
 
@@ -50,14 +50,16 @@ VERILOG_SOURCES += $(PWD)/tb.v
 #TOPLEVEL         = pdm_detector
 #TOPLEVEL         = constant_multiplier
 #TOPLEVEL         = down_shifter
-TOPLEVEL         = pdm_detector_holdoff
+#TOPLEVEL         = pdm_detector_holdoff
+TOPLEVEL = tt_um_example
 
 # List test modules to run, separated by commas and without the .py suffix:
 #COCOTB_TEST_MODULES = test
 #COCOTB_TEST_MODULES = tb_pdm_detector
 #COCOTB_TEST_MODULES = tb_multiplier
 #COCOTB_TEST_MODULES = tb_shifter
-COCOTB_TEST_MODULES = tb_pdm_detector_holdoff
+#COCOTB_TEST_MODULES = tb_pdm_detector_holdoff
+COCOTB_TEST_MODULES = tb_echo_timing
 
 # Include cocotb's make rules to take care of the simulator setup
 include $(shell cocotb-config --makefiles)/Makefile.sim

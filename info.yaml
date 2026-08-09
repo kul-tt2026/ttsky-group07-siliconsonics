@@ -18,6 +18,7 @@ project:
   # Don't forget to also update `PROJECT_SOURCES` in test/Makefile.
   source_files:
     - "project.v"
+    - "echo_timing.v"
     - "pdm_detectors.v"
     - "multiplier.v"
     - "min_finder.v"
