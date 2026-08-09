@@ -5,20 +5,6 @@
    that can be driven / tested by the cocotb test.py.
 */
 module tb ();
-
-  // Dump the signals to a FST file. You can view it with gtkwave or surfer.
-  initial begin
-    $dumpfile("tb.fst");
-    $dumpvars(0, tb);
-    #1;
-
-    clk   = 1'b0;
-    rst_n = 1'b0;
-    ena   = 1'b1;       // Tiny Tapeout: ena is high when design is selected
-    ui_in = 8'b0;
-    uio_in = 8'b0;
-  end
-
   // Wire up the inputs and outputs:
   reg clk;
   reg rst_n;
@@ -35,6 +21,21 @@ module tb ();
 
   wire [11:0] echo_window_index = {uio_out[3:0], uo_out[7:0]};
   wire echo_found = uio_out[4];
+
+  initial begin
+    clk    = 1'b0;
+    rst_n  = 1'b0;
+    ena    = 1'b1;
+    ui_in  = 8'b0;
+    uio_in = 8'b0;
+  end
+
+    // Dump the signals to a FST file. You can view it with gtkwave or surfer.
+  initial begin
+    $dumpfile("tb.fst");
+    $dumpvars(0, tb);
+    #1;
+  end
 
   // Replace tt_um_example with your module name:
   tt_um_example user_project (
