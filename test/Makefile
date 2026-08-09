@@ -46,12 +46,12 @@ endif
 
 # Include the testbench sources:
 VERILOG_SOURCES += $(PWD)/tb.v
-#TOPLEVEL         = tb
+TOPLEVEL         = tb
 #TOPLEVEL         = pdm_detector
 #TOPLEVEL         = constant_multiplier
 #TOPLEVEL         = down_shifter
 #TOPLEVEL         = pdm_detector_holdoff
-TOPLEVEL = tt_um_example
+#TOPLEVEL = tt_um_example
 
 # List test modules to run, separated by commas and without the .py suffix:
 #COCOTB_TEST_MODULES = test
