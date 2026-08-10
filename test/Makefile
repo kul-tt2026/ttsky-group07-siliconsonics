@@ -59,7 +59,7 @@ TOPLEVEL         = tb
 #COCOTB_TEST_MODULES = tb_multiplier
 #COCOTB_TEST_MODULES = tb_shifter
 #COCOTB_TEST_MODULES = tb_pdm_detector_holdoff
-COCOTB_TEST_MODULES = tb_echo_timing
+COCOTB_TEST_MODULES = tb_echo_timing,mic_us_power_sequence
 
 # Include cocotb's make rules to take care of the simulator setup
 include $(shell cocotb-config --makefiles)/Makefile.sim
