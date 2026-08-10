@@ -72,6 +72,9 @@ async def test_echo_timing_mic1_wall88(dut):
     dut.rst_n.value = 1
     await RisingEdge(dut.clk)
 
+    dut.ui_in.value = 0b01
+    await RisingEdge(dut.clk)
+
     # Feed PDM bits: mic_pdm on ui_in[1], each bit held for 10 clock cycles
     samples_to_send = min(len(bits), expected_window * WINDOW_SIZE + 100)
     for idx in range(samples_to_send):
@@ -122,6 +125,9 @@ async def test_echo_timing_mic1_synthetic(dut):
     await Timer(100, unit="ns")
 
     dut.rst_n.value = 1
+    await RisingEdge(dut.clk)
+
+    dut.ui_in.value = 0b01
     await RisingEdge(dut.clk)
 
     # Feed PDM bits: mic_pdm on ui_in[1], each bit held for 10 clock cycles

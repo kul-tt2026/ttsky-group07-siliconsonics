@@ -115,6 +115,8 @@ module windowed_iq_demodulator (
     // resets correlators, HI on first sample of each window, LO on subsequent samples
     wire new_window = new_window_reg;
 
+    wire active = (window_counter != '1); // active while last window is not reached
+
     ref_sig reference_signals (
         .clk(clk),
         .tick_4mhz(tick_4mhz),
@@ -148,23 +150,25 @@ module windowed_iq_demodulator (
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            window_counter <= 12'd0;
-            sample_index <= 7'd0;
+            window_counter <= '1;
+
+            sample_index <= '0;
             new_window_reg <= 1'b0;
             iq_valid <= 1'b0;
-            I <= 8'd0;
-            Q <= 8'd0;
+            I <= '0;
+            Q <= '0;
         end
         else begin
             if (start_measurement) begin
-                window_counter <= 12'd0;
-                sample_index <= 7'd0;
+                window_counter <= '0;
+                sample_index <= '0;
                 new_window_reg <= 1'b0;
+
                 iq_valid <= 1'b0;
-                I <= 8'd0;
-                Q <= 8'd0;
+                I <= '0;
+                Q <= '0;
             end
-            else if (tick_4mhz) begin
+            else if (tick_4mhz && active) begin
                 iq_valid <= 1'b0;
                 new_window_reg <= (sample_index == 7'd99);
 
@@ -172,7 +176,7 @@ module windowed_iq_demodulator (
                     I <= corr_I;
                     Q <= corr_Q;
                     iq_valid <= 1'b1;
-                    sample_index <= 7'd0;
+                    sample_index <= '0;
                     window_counter <= window_counter + 1;
                 end
                 else begin
@@ -218,11 +222,11 @@ module first_echo_timing (
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             echo_window_index <= 12'd0;
-            echo_found <= 1'b0;
+            echo_found <= 1'b1;
         end
         else begin
             if (start_measurement) begin
-                echo_window_index <= 12'd0;
+                echo_window_index <= '0;
                 echo_found <= 1'b0;
             end
             else if (tick_4mhz && iq_valid && !echo_found) begin

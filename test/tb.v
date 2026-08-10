@@ -25,6 +25,10 @@ module tb ();
     wire transducer_drive_b = uio_out[6];
     wire mic_clk = uio_out[7];
 
+    wire start_measurement = ui_in[0];
+    wire mic1_pdm = ui_in[1];
+    wire restart_mic = ui_in[7];
+
 
     initial begin
         clk = 1'b0;
