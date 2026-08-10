@@ -18,7 +18,7 @@ module tt_um_siliconsonics_ultrasonic_phased_array_sonar (
 
     // All output pins must be assigned. If not used, assign to 0.
     // --- Input mapping -------------------------------------------------------
-    wire restart = ui_in[0];
+    wire start_measurement = ui_in[0];
     wire mic_pdm = ui_in[1];
 
     // --- Internal signals from main ------------------------------------------
@@ -27,13 +27,16 @@ module tt_um_siliconsonics_ultrasonic_phased_array_sonar (
 
     wire transducer_drive_a;
     wire transducer_drive_b;
+
+    wire restart_mic = ui_in[7];
     wire mic_clk;
 
     // --- Core design ---------------------------------------------------------
     main main_inst (
         .clk(clk),
         .rst_n(rst_n),
-        .restart(restart),
+        .restart_mic(restart_mic),
+        .start_measurement(start_measurement),
         .mic_pdm(mic_pdm),
         .echo_window_index(echo_window_index),
         .echo_found(echo_found),
@@ -58,6 +61,6 @@ module tt_um_siliconsonics_ultrasonic_phased_array_sonar (
     assign uio_oe[7:5] = 3'b00000;  // unused pins as inputs
 
     // List all unused inputs to prevent warnings
-    wire _unused = &{ena, uio_in, ui_in[7:2], 1'b0};
+    wire _unused = &{ena, uio_in, ui_in[6:2], 1'b0};
 
 endmodule

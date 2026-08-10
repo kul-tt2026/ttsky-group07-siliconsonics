@@ -4,7 +4,7 @@ module transducer_ping_generator (
     input wire clk,
     input wire tick_4mhz,
     input wire rst_n,
-    input wire restart,
+    input wire start_measurement,
     output reg drive_a,
     output reg drive_b
 );
@@ -24,7 +24,7 @@ module transducer_ping_generator (
             half_period_counter <= 5'd16; // 16 == turned off
         end
         else begin
-            if (restart) begin
+            if (start_measurement) begin
                 counter <= 6'd0;
                 drive_a <= 1'b0;
                 drive_b <= 1'b0;

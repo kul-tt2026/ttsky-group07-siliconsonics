@@ -64,7 +64,7 @@ module correlator (
     input wire clk,
     input wire tick_4mhz,
     input wire rst_n,
-    input wire restart,
+    input wire start_measurement,
     input wire new_window, // resets to +1 or -1 based on ref_pdm
     input wire mic_pdm, // microphone input
     input wire ref_pdm, // reference signal (square cos/sin approximation)
@@ -77,7 +77,7 @@ module correlator (
             cumsum <= 8'b0;
         end
         else begin
-            if (restart) begin
+            if (start_measurement) begin
                 cumsum <= 8'b0;
             end
             else if (tick_4mhz && new_window) begin
@@ -96,7 +96,7 @@ module windowed_iq_demodulator (
     input wire clk,
     input wire tick_4mhz,
     input wire rst_n,
-    input wire restart,
+    input wire start_measurement,
     input wire mic_pdm,
     output reg signed [7:0] I,
     output reg signed [7:0] Q,
@@ -119,7 +119,7 @@ module windowed_iq_demodulator (
         .clk(clk),
         .tick_4mhz(tick_4mhz),
         .rst_n(rst_n),
-        .restart(restart),
+        .restart(start_measurement),
         .ref_cos(ref_cos),
         .ref_sin(ref_sin)
     );
@@ -128,7 +128,7 @@ module windowed_iq_demodulator (
         .clk(clk),
         .tick_4mhz(tick_4mhz),
         .rst_n(rst_n),
-        .restart(restart),
+        .start_measurement(start_measurement),
         .new_window(new_window),
         .mic_pdm(mic_pdm),
         .ref_pdm(ref_cos),
@@ -139,7 +139,7 @@ module windowed_iq_demodulator (
         .clk(clk),
         .tick_4mhz(tick_4mhz),
         .rst_n(rst_n),
-        .restart(restart),
+        .start_measurement(start_measurement),
         .new_window(new_window),
         .mic_pdm(mic_pdm),
         .ref_pdm(ref_sin),
@@ -156,7 +156,7 @@ module windowed_iq_demodulator (
             Q <= 8'd0;
         end
         else begin
-            if (restart) begin
+            if (start_measurement) begin
                 window_counter <= 12'd0;
                 sample_index <= 7'd0;
                 new_window_reg <= 1'b0;
@@ -188,7 +188,7 @@ module first_echo_timing (
     input wire clk,
     input wire tick_4mhz,
     input wire rst_n,
-    input wire restart,
+    input wire start_measurement,
     input wire mic_pdm,
     output reg [11:0] echo_window_index,
     output reg echo_found
@@ -207,7 +207,7 @@ module first_echo_timing (
         .clk(clk),
         .tick_4mhz(tick_4mhz),
         .rst_n(rst_n),
-        .restart(restart),
+        .start_measurement(start_measurement),
         .mic_pdm(mic_pdm),
         .I(I),
         .Q(Q),
@@ -221,7 +221,7 @@ module first_echo_timing (
             echo_found <= 1'b0;
         end
         else begin
-            if (restart) begin
+            if (start_measurement) begin
                 echo_window_index <= 12'd0;
                 echo_found <= 1'b0;
             end

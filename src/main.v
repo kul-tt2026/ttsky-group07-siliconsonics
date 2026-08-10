@@ -1,7 +1,8 @@
 module main (
     input wire clk,
     input wire rst_n,
-    input wire restart,
+    input wire restart_mic,
+    input wire start_measurement,
     input wire mic_pdm,
     output wire [11:0] echo_window_index,
     output wire echo_found,
@@ -22,7 +23,7 @@ module main (
         .clk(clk),
         .tick_4mhz(tick_4mhz),
         .rst_n(rst_n),
-        .restart(restart),
+        .start_measurement(start_measurement),
         .mic_pdm(mic_pdm),
         .echo_window_index(echo_window_index),
         .echo_found(echo_found)
@@ -32,7 +33,7 @@ module main (
         .clk(clk),
         .tick_4mhz(tick_4mhz),
         .rst_n(rst_n),
-        .restart(restart),
+        .start_measurement(start_measurement),
         .drive_a(transducer_drive_a),
         .drive_b(transducer_drive_b)
     );
@@ -41,7 +42,7 @@ module main (
         .clk(clk),
         .tick_4mhz(tick_4mhz),
         .rst_n(rst_n),
-        .restart(restart),
+        .restart(restart_mic), // mic is not supposed to restart for each pulse
         .mic_clk(mic_clk),
         .mic_ready(mic_ready)
     );
