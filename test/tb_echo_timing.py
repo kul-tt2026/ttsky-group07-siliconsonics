@@ -84,12 +84,8 @@ async def test_echo_timing_mic1_wall88(dut):
 
     await Timer(200, unit="ns")
 
-    # Read raw outputs
-    uo_val = int(dut.uo_out.value)      # echo_window_index[7:0]
-    uio_val = int(dut.uio_out.value)    # {3'b0, echo_found, index[11:8]}
-
-    observed_window = uo_val | ((uio_val & 0x0F) << 8)
-    observed_found = (uio_val >> 4) & 0x1
+    observed_window = int(dut.echo_window_index.value)
+    observed_found = int(dut.echo_found.value)
 
     assert observed_found == 1, (
         f"Expected echo_found to go high, saw {observed_found}"
@@ -139,12 +135,8 @@ async def test_echo_timing_mic1_synthetic(dut):
 
     await Timer(200, unit="ns")
 
-    # Read raw outputs
-    uo_val = int(dut.uo_out.value)      # echo_window_index[7:0]
-    uio_val = int(dut.uio_out.value)    # {3'b0, echo_found, index[11:8]}
-
-    observed_window = uo_val | ((uio_val & 0x0F) << 8)
-    observed_found = (uio_val >> 4) & 0x1
+    observed_window = int(dut.echo_window_index.value)
+    observed_found = int(dut.echo_found.value)
 
     assert observed_found == 1, (
         f"Expected echo_found to go high, saw {observed_found}"
