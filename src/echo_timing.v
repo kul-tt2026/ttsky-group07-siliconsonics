@@ -81,11 +81,11 @@ module correlator (
                 cumsum <= 8'b0;
             end
             else if (tick_4mhz && new_window) begin
-                cumsum <= comp ? -8'sd1 : 8'sd1;
+                cumsum <= comp ? (-8'sd1) : (8'sd1);
             end
             else if (tick_4mhz) begin
                 // comp == 1 when NOT equal -> -1, otherwise +1
-                cumsum <= comp ? cumsum - 8'sd1 : cumsum + 8'sd1;
+                cumsum <= comp ? (cumsum - 8'sd1) : (cumsum + 8'sd1);
             end
         end
     end
@@ -233,34 +233,5 @@ module first_echo_timing (
             end
         end
     end
-
-endmodule
-
-
-module main (
-    input wire clk,
-    input wire rst_n,
-    input wire restart,
-    input wire mic_pdm,
-    output wire [11:0] echo_window_index,
-    output wire echo_found
-);
-    wire tick_4mhz;
-
-    clk_div_10 clock_divider (
-        .clk(clk),
-        .rst_n(rst_n),
-        .tick_4mhz(tick_4mhz)
-    );
-
-    first_echo_timing echo_timing (
-        .clk(clk),
-        .tick_4mhz(tick_4mhz),
-        .rst_n(rst_n),
-        .restart(restart),
-        .mic_pdm(mic_pdm),
-        .echo_window_index(echo_window_index),
-        .echo_found(echo_found)
-    );
 
 endmodule

@@ -16,7 +16,7 @@ TOPLEVEL_LANG   ?= verilog
 SRC_DIR          = $(PWD)/../src
 
 #PROJECT_SOURCES  = project.v
-PROJECT_SOURCES  = project.v echo_timing.v pdm_detectors.v
+PROJECT_SOURCES  = project.v main.v echo_timing.v hardware_controller.v
 #PROJECT_SOURCES  = multiplier.v
 #PROJECT_SOURCES  = shifter.v
 
