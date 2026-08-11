@@ -1,5 +1,7 @@
-// WARNING, sends one impulse on startup
+// WARNING: sends one impulse on startup
 
+// Sends signals to drive_a and drive_b to generate an 8-period 40kHz ping
+// deadtime: 2 cycles @ 4MHz == 500ns 
 module transducer_ping_generator (
     input wire clk,
     input wire tick_4mhz,
@@ -55,14 +57,16 @@ module transducer_ping_generator (
 
 endmodule
 
-
+// Set's the mic_clk to follow the powerup sequence:
+// Powered off -> Normal mode -> Ultrasonic mode -> ready.
+// When the microphone should be ready mic_ready is set to HI
 module ultrasonic_mic_powerup_sequence (
     input wire clk,
     input wire tick_4mhz,
     input wire rst_n,
     input wire restart,
-    output reg mic_clk,
-    output wire mic_ready
+    output reg mic_clk, // clock for pdm mic
+    output wire mic_ready // turns HI when sequence is finished
 );
     reg us_mode;
 
