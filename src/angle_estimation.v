@@ -1,3 +1,4 @@
+ // Z1 * (Z2*) = (r1 + r2) * e^(i(theta1 - theta2)) => angle with x-axis == delta_phi
 module complex_iq_complex_product (
     input wire signed [7:0] I1,
     input wire signed [7:0] Q1,
