@@ -12,6 +12,7 @@ module complex_iq_complex_product (
 endmodule
 
 
+// arctg(I, Q) from the complex product -> delta phi
 module arctg_cordic (
     input wire signed [15:0] I_in,
     input wire signed [15:0] Q_in,
@@ -21,7 +22,7 @@ module arctg_cordic (
 
 endmodule
 
-
+// arcsin(delta_phi * v / (2*pi*f*d)) = theta
 module angle_calculation (
     input wire signed [15:0] delta_phi,
     output wire signed [15:0] angle_out
