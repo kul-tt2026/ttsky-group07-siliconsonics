@@ -1,9 +1,12 @@
 // WARNING: Requires 40MHz clock so 40MHz / 10 = 4MHz
 
+
+// divides clk signal by 10 @ 10% duty cycle
 module clk_div_10 (
-    input wire clk,
+    input wire clk, // input 40MHz
     input wire rst_n,
-    output reg tick_4mhz
+
+    output reg tick_4mhz // output 4MHz
 );
     reg [3:0] counter; // 0->9 (0 15)
 
@@ -21,15 +24,18 @@ module clk_div_10 (
 endmodule
 
 
+// generates 2 square reference signals with a phase difference of 90 degrees @40kHz
+// Square-wave approximation of sin/cos for correlation
 module ref_sig (
-    input wire clk,
-    input wire tick_4mhz,
+    input wire clk, // 40MHz clock
+    input wire tick_4mhz, // 4MHz 10% duty cycle
     input wire rst_n,
-    input wire restart,
-    output reg ref_sin,
-    output reg ref_cos
+    input wire restart, // restart reference signals
+
+    output reg ref_sin, // sin @ 40kHz
+    output reg ref_cos // sin delayed by 25 cycles = cos @ 40kHz
 );
-    reg [5:0] index; // 0->49 (0 63)
+    reg [5:0] index; // 0->49 (0 63), 50 ticks @ 4MHz == 1 half period @ 40kHz
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -43,6 +49,7 @@ module ref_sig (
                 ref_cos <= 1'b1;
                 ref_sin <= 1'b1;
             end
+            // square wave alternating 0 and 1 for a 40kHz square wave, shifted by 90 deg == 25 cycles
             else if (tick_4mhz) begin
                 // 40kHz cosine is 25 cycles ahead at 4MHz
                 if (index == 6'd24)
@@ -60,14 +67,18 @@ module ref_sig (
 
 endmodule
 
+
+//Signed accumulate-and-dump correlator (+1/-1 per sample) for 2 pdm signals @ 4MHz
+// when using sin/cos ref_signals results in I/Q components
 module correlator (
     input wire clk,
-    input wire tick_4mhz,
+    input wire tick_4mhz, // 4MHz 10% duty cycle
     input wire rst_n,
     input wire start_measurement,
     input wire new_window, // resets to +1 or -1 based on ref_pdm
     input wire mic_pdm, // microphone input
     input wire ref_pdm, // reference signal (square cos/sin approximation)
+
     output reg signed [7:0] cumsum // range: -100 to +100 => 7 bits + sign
 );
     wire comp = mic_pdm ^ ref_pdm;
@@ -92,15 +103,17 @@ module correlator (
 
 endmodule
 
+// calculates I and Q at 40kHz for the mic_pdm signal over 100-sample windows, samples are read @ 4MHz. 
 module windowed_iq_demodulator (
-    input wire clk,
-    input wire tick_4mhz,
+    input wire clk, // 40MHz clock
+    input wire tick_4mhz, // 4MHz 10% duty cycle
     input wire rst_n,
-    input wire start_measurement,
-    input wire mic_pdm,
-    output reg signed [7:0] I,
-    output reg signed [7:0] Q,
-    output reg iq_valid,
+    input wire start_measurement, // start measuring I/Q and updating the window starting at 0
+    input wire mic_pdm, // mic pdm signal @ 4MHz
+
+    output reg signed [7:0] I, // in-phase component of mic_pdm
+    output reg signed [7:0] Q, // quadrature component of mic_pdm
+    output reg iq_valid, // when HI, I/Q values are valid (true every 100 ticks @ 4MHz)
     output reg [11:0] window_counter  // 12-bit -> 4096 windows -> ~0.1s
 );
     wire ref_sin;
@@ -110,7 +123,7 @@ module windowed_iq_demodulator (
     wire signed [7:0] corr_Q;
 
     reg [6:0] sample_index; // 0->99 (0 127)
-    reg new_window_reg;
+    reg new_window_reg; // for storing whether a new window should be started
 
     // resets correlators, HI on first sample of each window, LO on subsequent samples
     wire new_window = new_window_reg;
@@ -188,14 +201,18 @@ module windowed_iq_demodulator (
 
 endmodule
 
+
+// Detects first echo by thresholding |I|+|Q| from the I/Q demodulator
+// when |I| + |Q| >= threshold: echo_found turns HI and echo_window_index can be read
 module first_echo_timing (
     input wire clk,
-    input wire tick_4mhz,
+    input wire tick_4mhz, // 4MHz 10% duty cycle
     input wire rst_n,
-    input wire start_measurement,
-    input wire mic_pdm,
-    output reg [11:0] echo_window_index,
-    output reg echo_found
+    input wire start_measurement, // start
+    input wire mic_pdm, // mic pdm signal @ 4MHz
+
+    output reg [11:0] echo_window_index, // window index where |I| + |Q| went over a set threshold
+    output reg echo_found // when |I| + |Q| go over the threshold this is set to HI, meaning echo_window_index can be read
 );
     wire iq_valid;
     wire [11:0] window_counter;
