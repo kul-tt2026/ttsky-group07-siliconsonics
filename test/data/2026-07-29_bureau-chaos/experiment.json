@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "kind": "hardware",
+  "created": "2026-07-29T17:11:29",
+  "description": "",
+  "params": {
+    "decim": 32,
+    "fdrive": 40000,
+    "guard_s": 0.002,
+    "pdm_hz": 4000000,
+    "baud": 3000000
+  },
+  "ground_truth": {
+    "objects": []
+  },
+  "captures": [
+    {
+      "file": "raw/capture_000.pdm",
+      "time": "2026-07-29T17:11:31",
+      "n_bytes": 524288
+    }
+  ]
+}

@@ -9,12 +9,12 @@ You can also include images in this folder and reference them in the markdown. E
 
 ## How it works
 
-Explain how your project works
+Reads the pdm signals of a microphone and times the echo of a 40kHz signal.
 
 ## How to test
 
-Explain how to use your project
+Power the transducer for 8 cycles simultaniously with a HI signal to the "restart" pin. When echo_found turns HI the "window index" can be read and transformed into a distance using: window_index * 100 / 4,000,000 * 343 / 2 = distance \[m\]
 
 ## External hardware
 
-List external hardware used in your project (e.g. PMOD, LED display, etc), if any
+Custom PCB with microphones and a transducer.
