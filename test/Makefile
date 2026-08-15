@@ -15,10 +15,7 @@ FST             ?= -fst # Use more efficient FST format
 TOPLEVEL_LANG   ?= verilog
 SRC_DIR          = $(PWD)/../src
 
-#PROJECT_SOURCES  = project.v
-PROJECT_SOURCES  = project.v main.v echo_timing.v hardware_controller.v
-#PROJECT_SOURCES  = multiplier.v
-#PROJECT_SOURCES  = shifter.v
+PROJECT_SOURCES  = project.v main.v echo_timing.v hardware_controller.v angle_estimation.v
 
 ifneq ($(GATES),yes)
 
@@ -47,19 +44,9 @@ endif
 # Include the testbench sources:
 VERILOG_SOURCES += $(PWD)/tb.v
 TOPLEVEL         = tb
-#TOPLEVEL         = pdm_detector
-#TOPLEVEL         = constant_multiplier
-#TOPLEVEL         = down_shifter
-#TOPLEVEL         = pdm_detector_holdoff
-#TOPLEVEL = tt_um_example
 
 # List test modules to run, separated by commas and without the .py suffix:
-#COCOTB_TEST_MODULES = test
-#COCOTB_TEST_MODULES = tb_pdm_detector
-#COCOTB_TEST_MODULES = tb_multiplier
-#COCOTB_TEST_MODULES = tb_shifter
-#COCOTB_TEST_MODULES = tb_pdm_detector_holdoff
-COCOTB_TEST_MODULES = tb_echo_timing,mic_us_power_sequence
+COCOTB_TEST_MODULES = atan2_cordic,tb_echo_timing,mic_us_power_sequence # WARNING: mic_us_power sequence is a long test (keep it in the back)
 
 # Include cocotb's make rules to take care of the simulator setup
 include $(shell cocotb-config --makefiles)/Makefile.sim
