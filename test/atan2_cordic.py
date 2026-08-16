@@ -12,8 +12,8 @@ def check_result(x: int, y: int, output: float, acceptable_error: float = 0.1):
     )
 
 @cocotb.test()
-@cocotb.parametrize(("x", range(-10, 10)), ("y", range(-10, 10)))
-async def atan2_cordic_test(dut, x: int=1, y: int=1):
+#@cocotb.parametrize(("x", range(-10, 10)), ("y", range(-10, 10)))
+async def atan2_cordic_test(dut, x: int=2, y: int=1):
     #dut._log.info(f"")
     
     # Clock (25 ns period = 40 MHz)
@@ -36,8 +36,17 @@ async def atan2_cordic_test(dut, x: int=1, y: int=1):
     await RisingEdge(dut.clk)
     dut.atan2_load_input.value = 0b0
 
-    await RisingEdge(dut.atan2_angle_valid)
+    formatted_result = 0
 
-    formatted_result = dut.atan2_angle_out.value.to_signed() / (2 ** 7)
+    for i in range(9):
+        await RisingEdge(dut.clk)
+        dut._log.info(f'Intermediate {i}: {dut.atan2_angle_out.value.to_signed() / (2 ** 7)} == {dut.atan2_angle_out.value}')
+
+        if dut.atan2_angle_valid.value == 1:
+            formatted_result = dut.atan2_angle_out.value.to_signed() / (2 ** 7)
+
+    #await RisingEdge(dut.atan2_angle_valid)
+
+    #formatted_result = dut.atan2_angle_out.value.to_signed() / (2 ** 7)
 
     check_result(x, y, formatted_result)

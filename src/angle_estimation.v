@@ -109,16 +109,21 @@ module atan2_cordic (
             else if (!angle_valid) begin // last iteration not reached yet
                 iteration_idx <= iteration_idx + 1;
 
+                /*
+                    x_i = x_(i-1)           -/+ y_(i-1) * tan(t)
+                    y_i = x_(i-1) * tan(t)  +/- y_(i-1)
+                */
+
                 x_reg <= positive_angle ?
                     (x_reg + (y_reg >> iteration_idx)) : 
                     (x_reg - (y_reg >> iteration_idx));
 
                 y_reg <= positive_angle ?
-                    ((x_reg >> iteration_idx) - y_reg) : 
-                    ((x_reg >> iteration_idx) + y_reg);
+                    (-(x_reg >> iteration_idx)  + y_reg) : 
+                    ((x_reg >> iteration_idx)   + y_reg);
 
                 angle_out <= positive_angle ?
-                    angle_out + angle_table[iteration_idx[2:0]] : // iteration_idx stays within 0 7 while iterating. 8 means the cordic module is finished
+                    angle_out + angle_table[iteration_idx[2:0]] : // iteration_idx stays within 0 7 while iterating (3 bits). 8 means the cordic module is finished
                     angle_out - angle_table[iteration_idx[2:0]];
             end
         end

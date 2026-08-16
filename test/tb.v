@@ -68,7 +68,7 @@ module tb ();
     wire atan2_load_input;
 
     wire atan2_angle_valid;
-    wire signed [7:0] atan2_angle_out;
+    wire signed [8:0] atan2_angle_out;
 
     atan2_cordic cordic_testing (
         `ifdef GL_TEST
