@@ -5,14 +5,19 @@ import numpy as np
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
 
+def adjusted_arctan(x, y):
+    if x != 0:
+        return np.arctan(y/x)
+
+    return np.pi / 2 * (np.sign(y))
 
 def check_result(x: int, y: int, output: float, acceptable_error: float = 0.1):
-    assert np.abs(np.arctan(y/x) - output) < acceptable_error, (
-        f'Error too large on input vector ({x}, {y}): \nexpected value: {np.arctan(y/x)}\n output: {output}\n error: {np.arctan(y/x) - output}'
+    assert np.abs(adjusted_arctan(x, y) - output) < acceptable_error, (
+        f'Error too large on input vector ({x}, {y}): \nexpected value: {adjusted_arctan(x, y)}\n output: {output}\n error: {adjusted_arctan(x, y) - output}'
     )
 
 @cocotb.test()
-#@cocotb.parametrize(("x", range(-10, 10)), ("y", range(-10, 10)))
+@cocotb.parametrize(("x", range(-10, 10)), ("y", range(-10, 10)))
 async def atan2_cordic_test(dut, x: int=2, y: int=1):
     #dut._log.info(f"")
     
@@ -36,14 +41,16 @@ async def atan2_cordic_test(dut, x: int=2, y: int=1):
     await RisingEdge(dut.clk)
     dut.atan2_load_input.value = 0b0
 
-    formatted_result = 0
+    formatted_result = None
 
     for i in range(9):
         await RisingEdge(dut.clk)
-        dut._log.info(f'Intermediate {i}: {dut.atan2_angle_out.value.to_signed() / (2 ** 7)} == {dut.atan2_angle_out.value}')
-
         if dut.atan2_angle_valid.value == 1:
             formatted_result = dut.atan2_angle_out.value.to_signed() / (2 ** 7)
+
+    assert formatted_result is not None, (
+        f'No angle returned within 8 cycles'
+    )
 
     #await RisingEdge(dut.atan2_angle_valid)
 
