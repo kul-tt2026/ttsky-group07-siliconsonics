@@ -10,15 +10,7 @@ arctg(1/32) = 0.03124
 arctg(1/64) = 0.015624
 arctg(1/128) = 0.007812
 
-in binary. script for generation is: fixed_point_arctg_table
-11001001
-01110111
-00111111
-00100000
-00010000
-00001000
-00000100
-00000010
+script for generation is of the coordinates: fixed_point_arctg_table
 
 rotation matrix:
 
@@ -40,8 +32,8 @@ module atan2_cordic (
     input wire rst_n,
 
     // (x,y) vector to calculate angle for
-    input wire signed [7:0] x_in, // signed int, has to fit I (-128 is invalid)
-    input wire signed [7:0] y_in, // signed int, has to fit Q (-128 is invalid)
+    input wire signed [7:0] x_in, // signed int, has to fit I
+    input wire signed [7:0] y_in, // signed int, has to fit Q
     input wire load_input, // HI when x/y should be updated and process should be started
 
     output wire angle_valid,
@@ -132,12 +124,13 @@ Input:
     - load_input
 
 Output:
-    - phase difference
+    - phase difference [0->2pi] -> [0 4096]
 
 State defining variables
-    - load_input
-    - first_coordinates_loaded
-    - atan2_cordic_angle_valid
+    - load_input (load input into phase_difference_calculator / start new run)
+    - first_coordinates_loaded (have the first coordinates been loaded into atan2)
+    - atan2_cordic_angle_valid (is the atan2 output currently valid)
+    - busy (busy calculating phase difference)
 
 States:
     - load_input LO: Not starting a new process
@@ -146,14 +139,17 @@ States:
                 => Wait (atan2 idle or still processing)
             - atan2_cordic_angle_valid HI: 
                 => Has to have been handling second coordinates -> last step -> output
+                @second_coordinates_finished
         - first_coordinates_loaded HI: (Handling first coordinates)
             - atan2_cordic_angle_valid LO: 
                 => Wait (atan2 idle or still processing)
             - atan2_cordic_angle_valid HI: 
                 => First coordinates finished -> 2nd pair can be loaded
+                @load_second_coordinates
 
     - load_input HI: Starting a new process
         => Nothing else matters, load first pair of coordinates
+        @load_input
 */
 module phase_difference_calculator (
     input wire clk,
@@ -166,7 +162,8 @@ module phase_difference_calculator (
     
     input wire load_input,
 
-    output reg signed [11:0] delta_phase_out
+    output reg [11:0] delta_phase_out,
+    output reg delta_phase_valid
 );
     reg [7:0] I2_reg;
     reg [7:0] Q2_reg;
@@ -177,12 +174,16 @@ module phase_difference_calculator (
 
     reg first_coordinates_loaded; // 0: i1/q1 not loaded yet, 1: i1/q1 loaded
 
-    wire load_second_coordinates = atan2_cordic_angle_valid & first_coordinates_loaded;
-    wire load_cordic_input = (load_input | load_second_coordinates);
-    wire second_coordinates_finished = atan2_cordic_angle_valid & !first_coordinates_loaded &! load_input;
+    reg busy;
 
-    wire signed [7:0] atan2_cordic_x_in = load_second_coordinates ? (I2) : (I1);
-    wire signed [7:0] atan2_cordic_y_in = load_second_coordinates ? (Q2) : (Q1);
+    // States (excluding load_input)
+    wire load_second_coordinates = atan2_cordic_angle_valid & first_coordinates_loaded & !load_input;
+    wire second_coordinates_finished = atan2_cordic_angle_valid & !first_coordinates_loaded &! load_input & busy;
+
+    wire load_cordic_input = (load_input | load_second_coordinates);
+
+    wire signed [7:0] atan2_cordic_x_in = load_second_coordinates ? (I2_reg) : (I1);
+    wire signed [7:0] atan2_cordic_y_in = load_second_coordinates ? (Q2_reg) : (Q1);
 
     wire signed [11:0] phase_difference = atan2_cordic_angle_out - phase1_reg;
 
@@ -202,35 +203,29 @@ module phase_difference_calculator (
             Q2_reg <= '0;
             phase1_reg <= '0;
             first_coordinates_loaded <= 1'b0;
+            delta_phase_out <= '0;
+            delta_phase_valid <= 1'b0;
+            busy <= 1'b0;
         end
 
-        if (load_input) begin
+        else if (load_input) begin
             I2_reg <= I2;
             Q2_reg <= Q2;
             phase1_reg <= '0;
             first_coordinates_loaded <= 1'b1;
+            delta_phase_valid <= 1'b0;
+            busy <= 1'b1;
         end
         else if (load_second_coordinates) begin
             phase1_reg <= atan2_cordic_angle_out;
+            first_coordinates_loaded <= 1'b0;
+            delta_phase_valid <= 1'b0;
         end
         else if (second_coordinates_finished) begin
             delta_phase_out <= phase_difference;
+            first_coordinates_loaded <= 1'b0;
+            delta_phase_valid <= 1'b1;
+            busy <= 1'b0;
         end
     end
 endmodule
-
-
-
-
- // Z1 * (Z2*) = (r1 + r2) * e^(i(theta1 - theta2)) => angle with x-axis == delta_phi
-// module complex_iq_complex_product (
-//     input wire signed [7:0] I1,
-//     input wire signed [7:0] Q1,
-//     input wire signed [7:0] I2,
-//     input wire signed [7:0] Q2,
-//     output wire signed [15:0] I_out,
-//     output wire signed [15:0] Q_out
-// );
-//     assign I_out = (I1 * I2) - (Q1 * Q2);
-//     assign Q_out = (I1 * Q2) + (Q1 * I2);
-// endmodule
