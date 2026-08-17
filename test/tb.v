@@ -63,27 +63,32 @@ module tb ();
             .rst_n(rst_n)     // not reset
     );
 
-    wire signed [7:0] atan2_x_in;
-    wire signed [7:0] atan2_y_in;
-    wire atan2_load_input;
+    `ifndef GL_TEST
 
-    wire atan2_angle_valid;
-    wire signed [11:0] atan2_angle_out;
+        wire signed [7:0] atan2_x_in;
+        wire signed [7:0] atan2_y_in;
+        wire atan2_load_input;
 
-    atan2_cordic cordic_testing (
-        `ifdef GL_TEST
-            .VPWR(VPWR),
-            .VGND(VGND),
-        `endif
+        wire atan2_angle_valid;
+        wire signed [11:0] atan2_angle_out;
 
-        .clk(clk),
-        .rst_n(rst_n),
-        .x_in(atan2_x_in),
-        .y_in(atan2_y_in),
-        .load_input(atan2_load_input),
-        .angle_valid(atan2_angle_valid),
-        .angle_out(atan2_angle_out)
-    );
+
+        atan2_cordic cordic_testing (
+            `ifdef GL_TEST
+                .VPWR(VPWR),
+                .VGND(VGND),
+            `endif
+
+            .clk(clk),
+            .rst_n(rst_n),
+            .x_in(atan2_x_in),
+            .y_in(atan2_y_in),
+            .load_input(atan2_load_input),
+            .angle_valid(atan2_angle_valid),
+            .angle_out(atan2_angle_out)
+        );
+
+    `endif
 
 endmodule
 

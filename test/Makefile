@@ -46,7 +46,13 @@ VERILOG_SOURCES += $(PWD)/tb.v
 TOPLEVEL         = tb
 
 # List test modules to run, separated by commas and without the .py suffix:
-COCOTB_TEST_MODULES = atan2_cordic,tb_echo_timing,mic_us_power_sequence # WARNING: mic_us_power sequence is a long test (keep it in the back)
+# COCOTB_TEST_MODULES = atan2_cordic,tb_echo_timing,mic_us_power_sequence # WARNING: mic_us_power sequence is a long test (keep it in the back)
+
+ifeq ($(GATES),yes)
+COCOTB_TEST_MODULES = tb_echo_timing,mic_us_power_sequence # only tests that apply to the complete design
+else
+COCOTB_TEST_MODULES = atan2_cordic,tb_echo_timing,mic_us_power_sequence # modules that are tested separately can be added here
+endif
 
 # Include cocotb's make rules to take care of the simulator setup
 include $(shell cocotb-config --makefiles)/Makefile.sim
