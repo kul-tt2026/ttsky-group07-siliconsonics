@@ -88,6 +88,32 @@ module tb ();
             .angle_out(atan2_angle_out)
         );
 
+            wire signed [7:0] I1;
+            wire signed [7:0] Q1;
+            wire signed [7:0] I2;
+            wire signed [7:0] Q2;
+            
+            wire pdc_load_input;
+            wire [11:0] pdc_phase_out;
+            wire pdc_phase_valid;
+
+        phase_difference_calculator inc_sig_phase_difference_calculator (
+            `ifdef GL_TEST
+                .VPWR(VPWR),
+                .VGND(VGND),
+            `endif
+
+            .clk(clk),
+            .rst_n(rst_n),
+            .I1(I1),
+            .I2(I2),
+            .Q1(Q1),
+            .Q2(Q2),
+            .load_input(pdc_load_input),
+            .delta_phase_out(pdc_phase_out),
+            .delta_phase_valid(pdc_phase_valid)
+        );
+
     `endif
 
 endmodule

@@ -50,6 +50,7 @@ async def atan2_cordic_test_group(dut):
                 await atan2_cordic_test(dut, x, y)
             except:
                 failed_num += 1
+                dut._log.info(f'Failed atan2 for: {x}, {y}')
 
     assert failed_num == 0, (
         f"Failed {failed_num} cases for atan2"
