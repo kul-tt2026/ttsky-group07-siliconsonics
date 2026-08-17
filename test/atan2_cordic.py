@@ -24,7 +24,7 @@ def check_result(x: int, y: int, output: float, acceptable_error: float = 10):
     )
 
 @cocotb.test()
-@cocotb.parametrize(("x", range(-10, 10)), ("y", range(-10, 10)))
+@cocotb.parametrize(("x", range(-100, 100)), ("y", range(-100, 100)))
 async def atan2_cordic_test(dut, x: int=1, y: int=1):
     #dut._log.info(f"")
     
@@ -53,7 +53,7 @@ async def atan2_cordic_test(dut, x: int=1, y: int=1):
     for i in range(9):
         await RisingEdge(dut.clk)
 
-        dut._log.info(f'Iteration {i}: {dut.atan2_angle_out.value}, read as: {dut.atan2_angle_out.value.integer}')
+        #dut._log.info(f'Iteration {i}: {dut.atan2_angle_out.value}, read as: {dut.atan2_angle_out.value.integer}')
 
         if dut.atan2_angle_valid.value == 1:
             formatted_result = dut.atan2_angle_out.value.integer
