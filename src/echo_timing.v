@@ -5,22 +5,20 @@ module first_echo_timing (
     input wire tick_4mhz, // 4MHz 10% duty cycle
     input wire rst_n,
     input wire start_measurement, // start
-    input wire mic1_pdm, // mic pdm signal @ 4MHz
-    input wire mic2_pdm,
+    input wire mic_pdm, // mic pdm signal @ 4MHz
 
     output reg [11:0] echo_window_index, // window index where |I| + |Q| went over a set threshold
     output reg echo_found // when |I| + |Q| go over the threshold this is set to HI, meaning echo_window_index can be read
 );
-    wire iq1_valid;
-    wire iq2_valid;
+    wire iq_valid;
 
     wire [11:0] window_counter;
 
-    wire signed [7:0] I1;
-    wire signed [7:0] Q1;
+    wire signed [7:0] I;
+    wire signed [7:0] Q;
 
-    wire [7:0] abs_I1 = I[7] ? -I1 : I1;
-    wire [7:0] abs_Q1 = Q[7] ? -Q1 : Q1;
+    wire [7:0] abs_I1 = I[7] ? -I : I;
+    wire [7:0] abs_Q1 = Q[7] ? -Q : Q;
     wire [7:0] sig_strength = abs_I1 + abs_Q1; // abs(I) + abs(Q), I and Q always within [-100, 100] -> 8 bits
 
     windowed_iq_demodulator mic_windowed_iq_demodulator (
@@ -28,36 +26,12 @@ module first_echo_timing (
         .tick_4mhz(tick_4mhz),
         .rst_n(rst_n),
         .start_measurement(start_measurement),
-        .mic_pdm(mic1_pdm),
-        .I(I1),
-        .Q(Q1),
-        .iq_valid(iq1_valid),
+        .mic_pdm(mic_pdm),
+        .I(I),
+        .Q(Q),
+        .iq_valid(iq_valid),
         .window_counter(window_counter)
     );
-
-    windowed_iq_demodulator mic_windowed_iq_demodulator (
-        .clk(clk),
-        .tick_4mhz(tick_4mhz),
-        .rst_n(rst_n),
-        .start_measurement(start_measurement),
-        .mic_pdm(mic2_pdm),
-        .I(I2),
-        .Q(Q2),
-        .iq_valid(iq2_valid),
-        .window_counter(window_counter)
-    );
-
-    phase_difference_calculator phase_calculator_1_2 (
-        .clk(clk),
-        .rst_n(rst_n),
-        .I1(),
-        .I2(),
-        .Q1(),
-        .Q2(),
-        .load_input(),
-        .delta_phase_out(),
-        .delta_phase_valid()
-    )
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
