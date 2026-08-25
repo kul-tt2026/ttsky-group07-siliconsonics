@@ -88,14 +88,36 @@ module tb ();
             .angle_out(atan2_angle_out)
         );
 
-            wire signed [7:0] I1;
-            wire signed [7:0] Q1;
-            wire signed [7:0] I2;
-            wire signed [7:0] Q2;
-            
-            wire pdc_load_input;
-            wire [11:0] pdc_phase_out;
-            wire pdc_phase_valid;
+        wire signed [15:0] atan2_x_in_16;
+        wire signed [15:0] atan2_y_in_16;
+        wire atan2_load_input_16;
+
+        wire atan2_angle_valid_16;
+        wire signed [11:0] atan2_angle_out_16;
+
+        atan2_cordic_16b cordic_testing_16 (
+            `ifdef GL_TEST
+                .VPWR(VPWR),
+                .VGND(VGND),
+            `endif
+
+            .clk(clk),
+            .rst_n(rst_n),
+            .x_in(atan2_x_in_16),
+            .y_in(atan2_y_in_16),
+            .load_input(atan2_load_input_16),
+            .angle_valid(atan2_angle_valid_16),
+            .angle_out(atan2_angle_out_16)
+        );
+
+        wire signed [7:0] I1;
+        wire signed [7:0] Q1;
+        wire signed [7:0] I2;
+        wire signed [7:0] Q2;
+        
+        wire pdc_load_input;
+        wire [11:0] pdc_phase_out;
+        wire pdc_phase_valid;
 
         phase_difference_calculator inc_sig_phase_difference_calculator (
             `ifdef GL_TEST

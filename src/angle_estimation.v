@@ -118,6 +118,8 @@ module atan2_cordic (
 
 endmodule
 
+
+// increased input size atan2 module
 module atan2_cordic_16b (
     input wire clk,
     input wire rst_n,
@@ -128,14 +130,14 @@ module atan2_cordic_16b (
     output reg [11:0] angle_out
 );
     reg [3:0] iteration_idx;
-    reg signed [23:0] x_reg;   // 16 data + 8 fractional bits
+    reg signed [23:0] x_reg;
     reg signed [23:0] y_reg;
     reg [11:0] angle_table [0:7];
 
     assign angle_valid = (iteration_idx == 4'd8);
 
-    wire positive_angle     = (y_reg[$high(y_reg)] == 1'b0);
-    wire inverted_rotation  = (x_reg[$high(x_reg)] == 1'b1);
+    wire positive_angle = (y_reg[$high(y_reg)] == 1'b0);
+    wire inverted_rotation = (x_reg[$high(x_reg)] == 1'b1);
 
     initial begin
         angle_table[0] = 12'd512;
