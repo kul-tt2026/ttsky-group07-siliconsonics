@@ -15,7 +15,7 @@ FST             ?= -fst # Use more efficient FST format
 TOPLEVEL_LANG   ?= verilog
 SRC_DIR          = $(PWD)/../src
 
-PROJECT_SOURCES  = project.v main.v echo_timing.v hardware_controller.v angle_estimation.v
+PROJECT_SOURCES  = project.v main.v echo_timing.v hardware_controller.v angle_estimation.v iq_demodulation.v
 
 ifneq ($(GATES),yes)
 

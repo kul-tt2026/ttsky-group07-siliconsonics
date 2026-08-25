@@ -1,207 +1,3 @@
-// WARNING: Requires 40MHz clock so 40MHz / 10 = 4MHz
-
-
-// divides clk signal by 10 @ 10% duty cycle
-module clk_div_10 (
-    input wire clk, // input 40MHz
-    input wire rst_n,
-
-    output reg tick_4mhz // output 4MHz
-);
-    reg [3:0] counter; // 0->9 (0 15)
-
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            counter <= 4'b0;
-            tick_4mhz <= 1'b0;
-        end
-        else begin
-            tick_4mhz <= (counter == 4'd9);
-            counter <= (counter == 4'd9) ? 4'd0 : counter + 1;
-        end
-    end
-
-endmodule
-
-
-// generates 2 square reference signals with a phase difference of 90 degrees @40kHz
-// Square-wave approximation of sin/cos for correlation
-module ref_sig (
-    input wire clk, // 40MHz clock
-    input wire tick_4mhz, // 4MHz 10% duty cycle
-    input wire rst_n,
-    input wire restart, // restart reference signals
-
-    output reg ref_sin, // sin @ 40kHz
-    output reg ref_cos // sin delayed by 25 cycles = cos @ 40kHz
-);
-    reg [5:0] index; // 0->49 (0 63), 50 ticks @ 4MHz == 1 half period @ 40kHz
-
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            index <= 6'd0;
-            ref_cos <= 1'b1;
-            ref_sin <= 1'b1;
-        end
-        else begin
-            if (restart) begin
-                index <= 6'd0;
-                ref_cos <= 1'b1;
-                ref_sin <= 1'b1;
-            end
-            // square wave alternating 0 and 1 for a 40kHz square wave, shifted by 90 deg == 25 cycles
-            else if (tick_4mhz) begin
-                // 40kHz cosine is 25 cycles ahead at 4MHz
-                if (index == 6'd24)
-                    ref_cos <= ~ref_cos;
-                if (index == 6'd49) begin
-                    index <= 6'd0;
-                    ref_sin <= ~ref_sin;
-                end
-                else begin
-                    index <= index + 1;
-                end
-            end
-        end
-    end
-
-endmodule
-
-
-//Signed accumulate-and-dump correlator (+1/-1 per sample) for 2 pdm signals @ 4MHz
-// when using sin/cos ref_signals results in I/Q components
-module correlator (
-    input wire clk,
-    input wire tick_4mhz, // 4MHz 10% duty cycle
-    input wire rst_n,
-    input wire start_measurement,
-    input wire new_window, // resets to +1 or -1 based on ref_pdm
-    input wire mic_pdm, // microphone input
-    input wire ref_pdm, // reference signal (square cos/sin approximation)
-
-    output reg signed [7:0] cumsum // range: -100 to +100 => 7 bits + sign
-);
-    wire comp = mic_pdm ^ ref_pdm;
-
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            cumsum <= 8'b0;
-        end
-        else begin
-            if (start_measurement) begin
-                cumsum <= 8'b0;
-            end
-            else if (tick_4mhz && new_window) begin
-                cumsum <= comp ? (-8'sd1) : (8'sd1);
-            end
-            else if (tick_4mhz) begin
-                // comp == 1 when NOT equal -> -1, otherwise +1
-                cumsum <= comp ? (cumsum - 8'sd1) : (cumsum + 8'sd1);
-            end
-        end
-    end
-
-endmodule
-
-// calculates I and Q at 40kHz for the mic_pdm signal over 100-sample windows, samples are read @ 4MHz. 
-module windowed_iq_demodulator (
-    input wire clk, // 40MHz clock
-    input wire tick_4mhz, // 4MHz 10% duty cycle
-    input wire rst_n,
-    input wire start_measurement, // start measuring I/Q and updating the window starting at 0
-    input wire mic_pdm, // mic pdm signal @ 4MHz
-
-    output reg signed [7:0] I, // in-phase component of mic_pdm
-    output reg signed [7:0] Q, // quadrature component of mic_pdm
-    output reg iq_valid, // when HI, I/Q values are valid (true every 100 ticks @ 4MHz)
-    output reg [11:0] window_counter  // 12-bit -> 4096 windows -> ~0.1s
-);
-    wire ref_sin;
-    wire ref_cos;
-
-    wire signed [7:0] corr_I;
-    wire signed [7:0] corr_Q;
-
-    reg [6:0] sample_index; // 0->99 (0 127)
-    reg new_window_reg; // for storing whether a new window should be started
-
-    // resets correlators, HI on first sample of each window, LO on subsequent samples
-    wire new_window = new_window_reg;
-
-    wire active = (window_counter != '1); // active while last window is not reached
-
-    ref_sig reference_signals (
-        .clk(clk),
-        .tick_4mhz(tick_4mhz),
-        .rst_n(rst_n),
-        .restart(start_measurement),
-        .ref_cos(ref_cos),
-        .ref_sin(ref_sin)
-    );
-
-    correlator cos_correlator (
-        .clk(clk),
-        .tick_4mhz(tick_4mhz),
-        .rst_n(rst_n),
-        .start_measurement(start_measurement),
-        .new_window(new_window),
-        .mic_pdm(mic_pdm),
-        .ref_pdm(ref_cos),
-        .cumsum(corr_I)
-    );
-
-    correlator sin_correlator (
-        .clk(clk),
-        .tick_4mhz(tick_4mhz),
-        .rst_n(rst_n),
-        .start_measurement(start_measurement),
-        .new_window(new_window),
-        .mic_pdm(mic_pdm),
-        .ref_pdm(ref_sin),
-        .cumsum(corr_Q)
-    );
-
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            window_counter <= '1;
-
-            sample_index <= '0;
-            new_window_reg <= 1'b0;
-            iq_valid <= 1'b0;
-            I <= '0;
-            Q <= '0;
-        end
-        else begin
-            if (start_measurement) begin
-                window_counter <= '0;
-                sample_index <= '0;
-                new_window_reg <= 1'b0;
-
-                iq_valid <= 1'b0;
-                I <= '0;
-                Q <= '0;
-            end
-            else if (tick_4mhz && active) begin
-                iq_valid <= 1'b0;
-                new_window_reg <= (sample_index == 7'd99);
-
-                if (sample_index == 7'd99) begin
-                    I <= corr_I;
-                    Q <= corr_Q;
-                    iq_valid <= 1'b1;
-                    sample_index <= '0;
-                    window_counter <= window_counter + 1;
-                end
-                else begin
-                    sample_index <= sample_index + 1;
-                end
-            end
-        end
-    end
-
-endmodule
-
-
 // Detects first echo by thresholding |I|+|Q| from the I/Q demodulator
 // when |I| + |Q| >= threshold: echo_found turns HI and echo_window_index can be read
 module first_echo_timing (
@@ -209,32 +5,59 @@ module first_echo_timing (
     input wire tick_4mhz, // 4MHz 10% duty cycle
     input wire rst_n,
     input wire start_measurement, // start
-    input wire mic_pdm, // mic pdm signal @ 4MHz
+    input wire mic1_pdm, // mic pdm signal @ 4MHz
+    input wire mic2_pdm,
 
     output reg [11:0] echo_window_index, // window index where |I| + |Q| went over a set threshold
     output reg echo_found // when |I| + |Q| go over the threshold this is set to HI, meaning echo_window_index can be read
 );
-    wire iq_valid;
+    wire iq1_valid;
+    wire iq2_valid;
+
     wire [11:0] window_counter;
 
-    wire signed [7:0] I;
-    wire signed [7:0] Q;
+    wire signed [7:0] I1;
+    wire signed [7:0] Q1;
 
-    wire [7:0] abs_I = I[7] ? -I : I;
-    wire [7:0] abs_Q = Q[7] ? -Q : Q;
-    wire [7:0] sig_strength = abs_I + abs_Q; // abs(I) + abs(Q), I and Q always within [-100, 100] -> 8 bits
+    wire [7:0] abs_I1 = I[7] ? -I1 : I1;
+    wire [7:0] abs_Q1 = Q[7] ? -Q1 : Q1;
+    wire [7:0] sig_strength = abs_I1 + abs_Q1; // abs(I) + abs(Q), I and Q always within [-100, 100] -> 8 bits
 
     windowed_iq_demodulator mic_windowed_iq_demodulator (
         .clk(clk),
         .tick_4mhz(tick_4mhz),
         .rst_n(rst_n),
         .start_measurement(start_measurement),
-        .mic_pdm(mic_pdm),
-        .I(I),
-        .Q(Q),
-        .iq_valid(iq_valid),
+        .mic_pdm(mic1_pdm),
+        .I(I1),
+        .Q(Q1),
+        .iq_valid(iq1_valid),
         .window_counter(window_counter)
     );
+
+    windowed_iq_demodulator mic_windowed_iq_demodulator (
+        .clk(clk),
+        .tick_4mhz(tick_4mhz),
+        .rst_n(rst_n),
+        .start_measurement(start_measurement),
+        .mic_pdm(mic2_pdm),
+        .I(I2),
+        .Q(Q2),
+        .iq_valid(iq2_valid),
+        .window_counter(window_counter)
+    );
+
+    phase_difference_calculator phase_calculator_1_2 (
+        .clk(clk),
+        .rst_n(rst_n),
+        .I1(),
+        .I2(),
+        .Q1(),
+        .Q2(),
+        .load_input(),
+        .delta_phase_out(),
+        .delta_phase_valid()
+    )
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -252,6 +75,201 @@ module first_echo_timing (
                     echo_found <= 1'b1;
                 end
             end
+        end
+    end
+
+endmodule
+
+
+module echo_angle_detector (
+    input wire clk,
+    input wire rst_n,
+    input wire tick_4mhz, // 4 MHz 10% duty pulse
+    input wire start_measurement,
+    input wire mic1_pdm,
+    input wire mic2_pdm,
+
+    output reg [5:0] angle_out, // from your phase_difference_to_angle table
+    output reg angle_valid, // pulse when angle_out is fresh
+    output reg [11:0] echo_window, // center window of detected echo
+    output reg echo_found
+);
+
+    localparam THRESHOLD = 8'd7; // |I|+|Q| threshold
+    localparam MIN_WIDTH = 4'd5; // minimum echo length
+    localparam BLANK     = 7'd64; // first BLANK ignored windows (direct transmitter -> mic filter)
+
+    localparam IDLE = 3'd0;
+    localparam ACCUM = 3'd1;
+    localparam ATAN2_M1 = 3'd2;
+    localparam ATAN2_M2 = 3'd3;
+    localparam CALC = 3'd4;
+
+    reg [2:0] state;
+
+    wire iq1_valid, iq2_valid;
+    wire signed [7:0] I1, Q1, I2, Q2;
+    wire [11:0] win_cnt1, win_cnt2;
+
+    windowed_iq_demodulator demod1 (
+        .clk(clk),
+        .tick_4mhz(tick_4mhz),
+        .rst_n(rst_n),
+        .start_measurement(start_measurement),
+        .mic_pdm(mic1_pdm),
+        .I(I1),
+        .Q(Q1),
+        .iq_valid(iq1_valid),
+        .window_counter(win_cnt1)
+    );
+
+    windowed_iq_demodulator demod2 (
+        .clk(clk),
+        .tick_4mhz(tick_4mhz),
+        .rst_n(rst_n),
+        .start_measurement(start_measurement),
+        .mic_pdm(mic2_pdm),
+        .I(I2),
+        .Q(Q2),
+        .iq_valid(iq2_valid),
+        .window_counter(win_cnt2)
+    );
+
+    wire [11:0] window_counter = win_cnt1; // win_cnt1 and win_cnt2 are identical
+
+    wire [7:0] abs_I1 = I1[7] ? -I1 : I1;
+    wire [7:0] abs_Q1 = Q1[7] ? -Q1 : Q1;
+    wire [7:0] abs_I2 = I2[7] ? -I2 : I2;
+    wire [7:0] abs_Q2 = Q2[7] ? -Q2 : Q2;
+    wire [8:0] sig1 = abs_I1 + abs_Q1;   // 0->200
+    wire [8:0] sig2 = abs_I2 + abs_Q2; // 0->200
+
+    reg signed [17:0] acc_I1, acc_Q1;
+    reg signed [17:0] acc_I2, acc_Q2;
+    reg [11:0] accum_cnt;
+    reg [11:0] echo_start;
+
+    reg signed [15:0] cordic_x, cordic_y;
+    reg cordic_load;
+    wire cordic_valid;
+    wire [11:0] cordic_angle;
+
+    atan2_cordic_16b cordic (
+        .clk(clk),
+        .rst_n(rst_n),
+        .x_in(cordic_x),
+        .y_in(cordic_y),
+        .load_input(cordic_load),
+        .angle_valid(cordic_valid),
+        .angle_out(cordic_angle)
+    );
+
+    reg [11:0] phase1;
+
+    wire [11:0] delta_phase = cordic_angle - phase1; // when 2nd cordic run is finished it will be correct
+    wire [5:0] table_angle;
+    wire table_invalid;
+
+    phase_difference_to_angle angle_lut (
+        .clk(clk),
+        .rst_n(rst_n),
+        .delta_phase_in(delta_phase_wire),
+        .angle_out(table_angle),
+        .invalid_input(table_invalid)
+    );
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            state <= IDLE;
+            acc_I1 <= '0;
+            acc_Q1 <= '0;
+            acc_I2 <= '0;
+            acc_Q2 <= '0;
+            accum_cnt <= '0;
+            cordic_load <= '0;
+            angle_valid <= '0;
+            angle_out <= '0;
+            echo_found <= '0;
+            echo_window <= '0;
+            phase1 <= '0;
+        end
+        else begin
+            angle_valid <= '0;
+            cordic_load <= '0;
+
+            case (state)
+                IDLE: begin
+                    if (start_measurement) begin
+                        acc_I1 <= '0;
+                        acc_Q1 <= '0;
+                        acc_I2 <= '0;
+                        acc_Q2 <= '0;
+                        accum_cnt <= '0;
+                        echo_found <= '0;
+                        state <= ACCUM;
+                    end
+                end
+                ACCUM: begin
+                    if (iq1_valid && iq2_valid) begin
+                        if (sig1 >= THRESHOLD && sig2 >= THRESHOLD // past first gate AND both signals above threshold -> accumulate
+                            && window_counter >= BLANK) begin
+
+                            if (accum_cnt == '0) begin
+                                echo_start <= window_counter;
+                            end
+
+                            acc_I1 <= acc_I1 + I1;
+                            acc_Q1 <= acc_Q1 + Q1;
+                            acc_I2 <= acc_I2 + I2;
+                            acc_Q2 <= acc_Q2 + Q2;
+                            accum_cnt <= accum_cnt + 1;
+                        end
+                        else if (accum_cnt >= MIN_WIDTH) begin // proceed to the next state if window is long enough
+                            cordic_x  <= acc_I1;
+                            cordic_y  <= acc_Q1;
+                            cordic_load <= '1;
+                            state <= ATAN2_M1;
+                        end
+                        else if (accum_cnt > '0) begin // there has been accumulation, but it stopped and the total window isnt't long enough
+                            acc_I1 <= '0;
+                            acc_Q1 <= '0;
+                            acc_I2 <= '0;
+                            acc_Q2 <= '0;
+                            accum_cnt <= '0;
+                        end
+                    end
+                end
+                ATAN2_M1: begin
+                    if (cordic_valid) begin
+                        phase1 <= cordic_angle;
+                        cordic_x <= acc_I2;
+                        cordic_y <= acc_Q2;
+                        cordic_load <= '1;
+                        state <= ATAN2_M2;
+                    end
+                end
+                ATAN2_M2: begin
+                    if (cordic_valid) begin
+                        // delta_phase = cordic_angle - phase1 (mod 4096)
+                        state <= CALC;
+                    end
+                end
+                CALC: begin
+                    angle_out <= table_angle; // table angle is the angle calculated from delta_phase
+                    angle_valid <= ~table_invalid;
+                    echo_found  <= ~table_invalid;
+                    echo_window <= echo_start + (accum_cnt >> 1);  // center of echo
+
+                    // Reset for the next echo
+                    acc_I1 <= '0;
+                    acc_Q1 <= '0;
+                    acc_I2 <= '0; 
+                    acc_Q2 <= '0;
+                    accum_cnt <= '0;
+                    state <= ACCUM;
+                end
+
+            endcase
         end
     end
 
