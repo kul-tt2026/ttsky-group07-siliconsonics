@@ -75,7 +75,6 @@ module correlator (
     input wire tick_4mhz, // 4MHz 10% duty cycle
     input wire rst_n,
     input wire start_measurement,
-    input wire new_window, // resets to +1 or -1 based on ref_pdm
     input wire mic_pdm, // microphone input
     input wire ref_pdm, // reference signal (square cos/sin approximation)
 
@@ -123,7 +122,7 @@ module windowed_iq_demodulator (
     output reg signed [7:0] I, // in-phase component of mic_pdm
     output reg signed [7:0] Q, // quadrature component of mic_pdm
     output reg iq_valid, // when HI, I/Q values are valid (true every 100 ticks @ 4MHz)
-    output reg [14:0] window_counter  // 12-bit -> 4096 windows -> ~0.1s
+    output reg [15:0] window_counter  // 16-bit -> 4096 windows -> ~0.1s
 );
     wire ref_sin;
     wire ref_cos;
@@ -132,10 +131,6 @@ module windowed_iq_demodulator (
     wire signed [7:0] corr_Q;
 
     reg [6:0] sample_index; // 0->99 (0 127)
-    reg new_window_reg; // for storing whether a new window should be started
-
-    // resets correlators, HI on first sample of each window, LO on subsequent samples
-    wire new_window = new_window_reg;
 
     wire active = (window_counter != '1); // active while last window is not reached
 
@@ -153,7 +148,6 @@ module windowed_iq_demodulator (
         .tick_4mhz(tick_4mhz),
         .rst_n(rst_n),
         .start_measurement(start_measurement),
-        .new_window(new_window),
         .mic_pdm(mic_pdm),
         .ref_pdm(ref_cos),
         .cumsum(corr_I)
@@ -164,7 +158,6 @@ module windowed_iq_demodulator (
         .tick_4mhz(tick_4mhz),
         .rst_n(rst_n),
         .start_measurement(start_measurement),
-        .new_window(new_window),
         .mic_pdm(mic_pdm),
         .ref_pdm(ref_sin),
         .cumsum(corr_Q)
@@ -173,9 +166,7 @@ module windowed_iq_demodulator (
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             window_counter <= '1;
-
             sample_index <= '0;
-            new_window_reg <= 1'b0;
             iq_valid <= 1'b0;
             I <= '0;
             Q <= '0;
@@ -184,15 +175,12 @@ module windowed_iq_demodulator (
             if (start_measurement) begin
                 window_counter <= '0;
                 sample_index <= '0;
-                new_window_reg <= 1'b0;
-
                 iq_valid <= 1'b0;
                 I <= '0;
                 Q <= '0;
             end
             else if (tick_4mhz && active) begin
                 iq_valid <= 1'b0;
-                new_window_reg <= (sample_index == 7'd99);
 
                 if (sample_index >= 7'd99) begin
                     I <= corr_I;
@@ -219,11 +207,11 @@ module first_echo_timing (
     input wire start_measurement, // start
     input wire mic_pdm, // mic pdm signal @ 4MHz
 
-    output reg [14:0] echo_window_index, // window index where |I| + |Q| went over a set threshold
+    output reg [15:0] echo_window_index, // window index where |I| + |Q| went over a set threshold
     output reg echo_found // when |I| + |Q| go over the threshold this is set to HI, meaning echo_window_index can be read
 );
     wire iq_valid;
-    wire [14:0] window_counter;
+    wire [15:0] window_counter;
 
     wire signed [7:0] I;
     wire signed [7:0] Q;
@@ -246,7 +234,7 @@ module first_echo_timing (
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            echo_window_index <= 15'd0;
+            echo_window_index <= 16'd0;
             echo_found <= 1'b0;
         end
         else begin
@@ -255,7 +243,7 @@ module first_echo_timing (
                 echo_found <= 1'b0;
             end
             else if (tick_4mhz && iq_valid && !echo_found) begin
-                if (sig_strength >= 8'd60 && window_counter >= 15'd6301) begin // 16: empirical noise/echo threshold, 64: empirical echo_end threshold
+                if (sig_strength >= 8'd60 && window_counter >= 16'd6301) begin // 16: empirical noise/echo threshold, 64: empirical echo_end threshold
                     echo_window_index <= window_counter-1;
                     echo_found <= 1'b1;
                 end

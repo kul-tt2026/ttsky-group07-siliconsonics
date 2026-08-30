@@ -22,7 +22,7 @@ module tt_um_siliconsonics (
     wire mic_pdm = ui_in[1];
 
     // --- Internal signals from main ------------------------------------------
-    wire [14:0] echo_window_index;
+    wire [15:0] echo_window_index;
     wire echo_found;
 
     wire transducer_drive_a;
@@ -39,7 +39,7 @@ module tt_um_siliconsonics (
         .start_measurement(start_measurement),
         .mic_pdm(mic_pdm),
         .echo_window_index(echo_window_index),
-        .echo_found(echo_found),
+        .valid_out(echo_found),
         .transducer_drive_a(transducer_drive_a),
         .transducer_drive_b(transducer_drive_b),
         .mic_clk(mic_clk)
