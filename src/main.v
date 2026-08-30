@@ -1,14 +1,18 @@
+`default_nettype none
+
 module main (
     input wire clk,
     input wire rst_n,
     input wire restart_mic,
     input wire start_measurement,
-    input wire mic_pdm,
+    input wire mic1_pdm,
+    input wire mic2_pdm,
     output wire [11:0] echo_window_index,
-    output wire echo_found,
     output wire transducer_drive_a,
     output wire transducer_drive_b,
-    output wire mic_clk
+    output wire mic_clk,
+    output wire [11:0] angle_out_horizontal,
+    output wire angle_valid_horizontal
 );
     wire tick_4mhz;
     wire mic_ready;
@@ -19,14 +23,16 @@ module main (
         .tick_4mhz(tick_4mhz)
     );
 
-    first_echo_timing echo_timing (
+    echo_angle_detector echo_angle_detector_horizontal (
         .clk(clk),
         .tick_4mhz(tick_4mhz),
         .rst_n(rst_n),
         .start_measurement(start_measurement),
-        .mic_pdm(mic_pdm),
-        .echo_window_index(echo_window_index),
-        .echo_found(echo_found)
+        .mic1_pdm(mic1_pdm),
+        .mic2_pdm(mic2_pdm),
+        .angle_out(angle_out_horizontal),
+        .angle_valid(angle_valid_horizontal),
+        .echo_window(echo_window_index)
     );
 
     transducer_ping_generator transducer_signal_generator (
@@ -42,9 +48,21 @@ module main (
         .clk(clk),
         .tick_4mhz(tick_4mhz),
         .rst_n(rst_n),
-        .restart(restart_mic), // mic is not supposed to restart for each pulse
+        .restart(restart_mic),
         .mic_clk(mic_clk),
         .mic_ready(mic_ready)
     );
 
+endmodule
+
+
+module data_mux #(
+    parameter WIDTH = 12
+)(
+    input wire [WIDTH-1:0] data0,
+    input wire [WIDTH-1:0] data1,
+    input wire sel,
+    output wire [WIDTH-1:0] data_out
+);
+    assign data_out = sel ? data1 : data0;
 endmodule

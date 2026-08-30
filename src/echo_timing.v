@@ -54,7 +54,10 @@ module first_echo_timing (
 
 endmodule
 
+/*
+2 demodulators, 1 for each mic
 
+*/
 module echo_angle_detector (
     input wire clk,
     input wire rst_n,
@@ -71,7 +74,7 @@ module echo_angle_detector (
 
     localparam THRESHOLD = 9'd7; // |I|+|Q| threshold
     localparam MIN_WIDTH = 4'd5; // minimum echo length
-    localparam BLANK     = 7'd64; // first BLANK ignored windows (direct transmitter -> mic filter)
+    localparam BLANK = 7'd64; // first BLANK ignored windows (direct transmitter -> mic filter)
 
     localparam IDLE = 3'd0;
     localparam ACCUM = 3'd1;
@@ -118,8 +121,8 @@ module echo_angle_detector (
     wire [8:0] sig1 = abs_I1 + abs_Q1;   // 0->200
     wire [8:0] sig2 = abs_I2 + abs_Q2; // 0->200
 
-    reg signed [17:0] acc_I1, acc_Q1;
-    reg signed [17:0] acc_I2, acc_Q2;
+    reg signed [15:0] acc_I1, acc_Q1;
+    reg signed [15:0] acc_I2, acc_Q2;
     reg [11:0] accum_cnt;
     reg [11:0] echo_start;
 
@@ -167,8 +170,8 @@ module echo_angle_detector (
             echo_window <= '0;
             phase1 <= '0;
             echo_start <= '0;
-            cordic_x   <= '0;
-            cordic_y   <= '0;
+            cordic_x <= '0;
+            cordic_y <= '0;
         end
         else begin
             angle_valid <= '0;
@@ -184,29 +187,30 @@ module echo_angle_detector (
                         accum_cnt <= '0;
                         echo_found <= '0;
                         echo_start <= '0;
-                        cordic_x   <= '0;
-                        cordic_y   <= '0;
+                        cordic_x <= '0;
+                        cordic_y <= '0;
                         state <= ACCUM;
                     end
                 end
-                ACCUM: begin
+                ACCUM: begin // acummulate I/Q over multiple windows
                     if (iq1_valid && iq2_valid && tick_4mhz) begin
                         if (sig1 >= THRESHOLD && sig2 >= THRESHOLD // past first gate AND both signals above threshold -> accumulate
-                            && window_counter >= BLANK) begin
+                            && window_counter >= {{5{1'b0}}, BLANK}) begin
 
                             if (accum_cnt == '0) begin
                                 echo_start <= window_counter;
                             end
 
-                            acc_I1 <= acc_I1 + I1;
-                            acc_Q1 <= acc_Q1 + Q1;
-                            acc_I2 <= acc_I2 + I2;
-                            acc_Q2 <= acc_Q2 + Q2;
+                            acc_I1 <= acc_I1 + {{8{I1[$high(I1)]}}, I1};
+                            acc_Q1 <= acc_Q1 + {{8{Q1[$high(Q1)]}}, Q1};
+                            acc_I2 <= acc_I2 + {{8{I2[$high(I2)]}}, I2};
+                            acc_Q2 <= acc_Q2 + {{8{Q2[$high(Q2)]}}, Q2};
+
                             accum_cnt <= accum_cnt + 1;
                         end
-                        else if (accum_cnt >= MIN_WIDTH) begin // proceed to the next state if window is long enough
-                            cordic_x  <= acc_I1;
-                            cordic_y  <= acc_Q1;
+                        else if (accum_cnt >= {{8{1'b0}}, MIN_WIDTH}) begin // proceed to the next state if window is long enough AND threshold isn't crossed anymore
+                            cordic_x <= acc_I1;
+                            cordic_y <= acc_Q1;
                             cordic_load <= '1;
                             state <= ATAN2_M1;
                         end
@@ -219,8 +223,8 @@ module echo_angle_detector (
                         end
                     end
                 end
-                ATAN2_M1: begin
-                    if (cordic_valid) begin
+                ATAN2_M1: begin // find phase 1
+                    if (cordic_valid && !(cordic_load)) begin
                         phase1 <= cordic_angle;
                         cordic_x <= acc_I2;
                         cordic_y <= acc_Q2;
@@ -228,17 +232,17 @@ module echo_angle_detector (
                         state <= ATAN2_M2;
                     end
                 end
-                ATAN2_M2: begin
-                    if (cordic_valid) begin
+                ATAN2_M2: begin // find phase 2
+                    if (cordic_valid && !(cordic_load)) begin
                         // delta_phase = cordic_angle - phase1 (mod 4096)
                         state <= CALC;
                     end
                 end
-                CALC: begin
-                    angle_out <= table_angle; // table angle is the angle calculated from delta_phase
+                CALC: begin // calculate origin angle
+                    angle_out <= table_angle; // table_angle is the angle calculated from delta_phase
                     angle_valid <= ~table_invalid;
                     echo_found  <= ~table_invalid;
-                    echo_window <= echo_start + (accum_cnt >> 1);  // center of echo
+                    echo_window <= echo_start; // echo start, alternative:| + (accum_cnt >> 1);  // center of echo
 
                     // Reset for the next echo
                     acc_I1 <= '0;

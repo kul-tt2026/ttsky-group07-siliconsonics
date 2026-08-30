@@ -46,7 +46,7 @@ module atan2_cordic (
 
     reg [11:0] angle_table [0:7];
 
-    assign angle_valid = (iteration_idx == 4'd8) && !(load_input);
+    assign angle_valid = (iteration_idx == 4'd8);
 
     wire positive_angle = (y_reg[$high(y_reg)] == 1'b0);
     wire inverted_rotation = (x_reg[$high(x_reg)] == 1'b1);
@@ -134,7 +134,7 @@ module atan2_cordic_16b (
     reg signed [23:0] y_reg;
     reg [11:0] angle_table [0:7];
 
-    assign angle_valid = (iteration_idx == 4'd8) && !(load_input);
+    assign angle_valid = (iteration_idx == 4'd8);
 
     wire positive_angle = (y_reg[$high(y_reg)] == 1'b0);
     wire inverted_rotation = (x_reg[$high(x_reg)] == 1'b1);

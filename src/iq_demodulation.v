@@ -183,14 +183,14 @@ module windowed_iq_demodulator (
             end
             else if (tick_4mhz && active) begin
                 iq_valid <= 1'b0;
-                new_window_reg <= (sample_index == 7'd99);
+                new_window_reg <= (sample_index == 7'd99); // queue new window on tick "100"=0
 
-                if (sample_index == 7'd99) begin
+                if (sample_index == 7'd100) begin
                     I <= corr_I;
                     Q <= corr_Q;
-                    iq_valid <= 1'b1;
-                    sample_index <= '0;
                     window_counter <= window_counter + 1;
+                    iq_valid <= 1'b1;
+                    sample_index <= 7'd1;
                 end
                 else begin
                     sample_index <= sample_index + 1;

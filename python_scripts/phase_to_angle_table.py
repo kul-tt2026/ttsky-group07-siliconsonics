@@ -25,10 +25,12 @@ def calculate_angle(twelve_bit_phase: int) -> int:
 
     return round(angle / (2*np.pi) * (2 ** BITS)) % 64
 
-for i in range(np.power(2, BITS)):
-    val = calculate_angle(i * (2**6))
-    if val == None:
-        continue
-    print(f'6\'d{i}: angle_out = 6\'d{val};')
+
+if __name__ == '__main__':
+    for i in range(np.power(2, BITS)):
+        val = calculate_angle(i * (2**6))
+        if val == None:
+            continue
+        print(f'6\'d{i}: angle_out = 6\'d{val};')
 
 #print(calculate_angle(200))

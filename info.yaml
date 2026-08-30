@@ -23,10 +23,6 @@ project:
     - "hardware_controller.v"
     - "angle_estimation.v"
     - "iq_demodulation.v"
-   # - "pdm_detectors.v"
-   # - "multiplier.v"
-   # - "min_finder.v"
-   # - "shifter.v"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 # This section is for the datasheet/website. Use descriptive names (e.g., RX, TX, MOSI, SCL, SEG_A, etc.).
