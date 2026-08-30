@@ -22,7 +22,7 @@ module tt_um_siliconsonics (
     wire mic_pdm = ui_in[1];
 
     // --- Internal signals from main ------------------------------------------
-    wire [11:0] echo_window_index;
+    wire [14:0] echo_window_index;
     wire echo_found;
 
     wire transducer_drive_a;
@@ -50,11 +50,8 @@ module tt_um_siliconsonics (
     assign uo_out[7:0]  = echo_window_index[7:0];
 
     // Bidirectional outputs: upper 4 bits of window index + echo_found
-    assign uio_out[3:0] = echo_window_index[11:8];
-    assign uio_out[4] = echo_found;
-    assign uio_out[5] = transducer_drive_a;
-    assign uio_out[6] = transducer_drive_b;
-    assign uio_out[7] = mic_clk;
+    assign uio_out[6:0] = echo_window_index[14:8];
+    assign uio_out[7] = echo_found;
 
     // Enable bidirectional pins as outputs where we drive data
     assign uio_oe[4:0] = 5'b11111;  // index[11:8] + echo_found

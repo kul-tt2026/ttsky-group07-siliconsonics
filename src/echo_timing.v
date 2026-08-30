@@ -81,22 +81,31 @@ module correlator (
 
     output reg signed [7:0] cumsum // range: -100 to +100 => 7 bits + sign
 );
+    // 100-bit shift register storing past comparison results
+    reg [99:0] shift_reg;
+    // 100-bit shift register tracking the validity of the historical comparison results
+    reg [99:0] shift_reg_valid;
+
     wire comp = mic_pdm ^ ref_pdm;
+    wire signed [7:0] old_comp = shift_reg[99] ? 8'sd1 : -8'sd1;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             cumsum <= 8'b0;
+            shift_reg <= 100'b0;
+            shift_reg_valid <= 100'b0;
         end
         else begin
             if (start_measurement) begin
                 cumsum <= 8'b0;
             end
-            else if (tick_4mhz && new_window) begin
-                cumsum <= comp ? (-8'sd1) : (8'sd1);
-            end
             else if (tick_4mhz) begin
                 // comp == 1 when NOT equal -> -1, otherwise +1
-                cumsum <= comp ? (cumsum - 8'sd1) : (cumsum + 8'sd1);
+                shift_reg <= {shift_reg[98:0], comp};
+                shift_reg_valid <= {shift_reg_valid[98:0], 1'b1};
+
+                // Update running sum: add new sample contribution and subtract the oldest sample shifted out of the window
+                cumsum <= (comp ? (cumsum - 8'sd1) : (cumsum + 8'sd1)) + old_comp*shift_reg_valid[99];
             end
         end
     end
@@ -114,7 +123,7 @@ module windowed_iq_demodulator (
     output reg signed [7:0] I, // in-phase component of mic_pdm
     output reg signed [7:0] Q, // quadrature component of mic_pdm
     output reg iq_valid, // when HI, I/Q values are valid (true every 100 ticks @ 4MHz)
-    output reg [11:0] window_counter  // 12-bit -> 4096 windows -> ~0.1s
+    output reg [14:0] window_counter  // 12-bit -> 4096 windows -> ~0.1s
 );
     wire ref_sin;
     wire ref_cos;
@@ -185,11 +194,10 @@ module windowed_iq_demodulator (
                 iq_valid <= 1'b0;
                 new_window_reg <= (sample_index == 7'd99);
 
-                if (sample_index == 7'd99) begin
+                if (sample_index >= 7'd99) begin
                     I <= corr_I;
                     Q <= corr_Q;
                     iq_valid <= 1'b1;
-                    sample_index <= '0;
                     window_counter <= window_counter + 1;
                 end
                 else begin
@@ -211,11 +219,11 @@ module first_echo_timing (
     input wire start_measurement, // start
     input wire mic_pdm, // mic pdm signal @ 4MHz
 
-    output reg [11:0] echo_window_index, // window index where |I| + |Q| went over a set threshold
+    output reg [14:0] echo_window_index, // window index where |I| + |Q| went over a set threshold
     output reg echo_found // when |I| + |Q| go over the threshold this is set to HI, meaning echo_window_index can be read
 );
     wire iq_valid;
-    wire [11:0] window_counter;
+    wire [14:0] window_counter;
 
     wire signed [7:0] I;
     wire signed [7:0] Q;
@@ -238,8 +246,8 @@ module first_echo_timing (
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            echo_window_index <= 12'd0;
-            echo_found <= 1'b1;
+            echo_window_index <= 15'd0;
+            echo_found <= 1'b0;
         end
         else begin
             if (start_measurement) begin
@@ -247,8 +255,8 @@ module first_echo_timing (
                 echo_found <= 1'b0;
             end
             else if (tick_4mhz && iq_valid && !echo_found) begin
-                if (sig_strength >= 8'd16 && window_counter >= 12'd64) begin // 16: empirical noise/echo threshold, 64: empirical echo_end threshold
-                    echo_window_index <= window_counter;
+                if (sig_strength >= 8'd60 && window_counter >= 15'd6301) begin // 16: empirical noise/echo threshold, 64: empirical echo_end threshold
+                    echo_window_index <= window_counter-1;
                     echo_found <= 1'b1;
                 end
             end

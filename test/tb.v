@@ -19,11 +19,8 @@ module tb ();
         wire VGND = 1'b0;
     `endif
 
-    wire [11:0] echo_window_index = {uio_out[3:0], uo_out[7:0]};
-    wire echo_found = uio_out[4];
-    wire transducer_drive_a = uio_out[5];
-    wire transducer_drive_b = uio_out[6];
-    wire mic_clk = uio_out[7];
+    wire [14:0] echo_window_index = {uio_out[6:0], uo_out[7:0]};
+    wire echo_found = uio_out[7];
 
     wire start_measurement = ui_in[0];
     wire mic1_pdm = ui_in[1];

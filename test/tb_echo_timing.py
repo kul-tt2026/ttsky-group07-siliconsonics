@@ -8,8 +8,8 @@ from cocotb.triggers import RisingEdge, Timer
 MIC_SAMPLE_FREQUENCY = 4_000_000
 SIGNAL_FREQUENCY = 40_000
 WINDOW_SIZE = 100
-THRESHOLD = 16
-MIN_WINDOW = 64
+THRESHOLD = 60
+MIN_WINDOW = 6301 #6400ns  = 
 
 
 def load_mic1_bits(path: Path) -> list[int]:
@@ -33,14 +33,19 @@ def expected_window_from_data(bits: list[int]) -> int:
     I = r_cos * mic_transformed
     Q = r_sin * mic_transformed
 
-    I_windowed = I[: len(I) - len(I) % WINDOW_SIZE].reshape(-1, WINDOW_SIZE).sum(axis=1)
-    Q_windowed = Q[: len(Q) - len(Q) % WINDOW_SIZE].reshape(-1, WINDOW_SIZE).sum(axis=1)
+    # Efficiënte berekening van een schuivend venster (sliding window sum)
+    # Door de cumulatieve som te nemen, kun je het venster berekenen als: som[einde] - som[begin]
+    cumsum_I = np.cumsum(np.insert(I, 0, 0))
+    cumsum_Q = np.cumsum(np.insert(Q, 0, 0))
+    
+    I_windowed = cumsum_I[WINDOW_SIZE:] - cumsum_I[:-WINDOW_SIZE]
+    Q_windowed = cumsum_Q[WINDOW_SIZE:] - cumsum_Q[:-WINDOW_SIZE]
 
     sig_strength = np.abs(I_windowed) + np.abs(Q_windowed)
     matches = np.flatnonzero(
         (sig_strength >= THRESHOLD) & (np.arange(len(sig_strength)) + 1 >= MIN_WINDOW)
     )
-    assert len(matches) > 0, "No non-overlapping window in the PDM capture crossed the echo threshold"
+    assert len(matches) > 0, "No sliding window in the PDM capture crossed the echo threshold"
     return int(matches[0] + 1)
 
 
@@ -55,7 +60,8 @@ async def test_echo_timing_mic1_wall88(dut):
     )
     bits = load_mic1_bits(data_path)
     expected_window = expected_window_from_data(bits)
-    expected_distance = expected_window * 100 / 4_000_000 * 343 / 2
+    # (expected_window + 99): First 100 samples form the initial window, then a new window for every sample
+    expected_distance = (expected_window + 99)/ 4_000_000 * 343 / 2 
     dut._log.info(f"Expected window {expected_window} (~{expected_distance:.2f} m)")
 
     # Clock (25 ns period = 40 MHz)
@@ -106,7 +112,7 @@ async def test_echo_timing_mic1_synthetic(dut):
     )
     bits = load_mic1_bits(data_path)
     expected_window = expected_window_from_data(bits)
-    expected_distance = expected_window * 100 / 4_000_000 * 343 / 2
+    expected_distance = (expected_window + 99)/ 4_000_000 * 343 / 2
     dut._log.info(f"Expected window {expected_window} (~{expected_distance:.2f} m)")
 
     # Clock (25 ns period = 40 MHz)

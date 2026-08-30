@@ -4,7 +4,7 @@ module main (
     input wire restart_mic,
     input wire start_measurement,
     input wire mic_pdm,
-    output wire [11:0] echo_window_index,
+    output wire [14:0] echo_window_index,
     output wire echo_found,
     output wire transducer_drive_a,
     output wire transducer_drive_b,
