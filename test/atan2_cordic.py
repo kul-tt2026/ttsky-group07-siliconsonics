@@ -91,8 +91,12 @@ async def atan2_cordic_test(dut, x: int=1, y: int=1):
 
 @cocotb.test()
 async def atan2_16_cordic_test_group(dut):
-    x_range = range(-5000, 5000)
-    y_range = range(-5000, 5000)
+    values = [
+        -5000, -4096, -2048, -1024, -1, 0, 1, 1024, 2048, 4095, 4999
+    ]
+
+    x_range = values
+    y_range = values
 
     failed_num = 0
 

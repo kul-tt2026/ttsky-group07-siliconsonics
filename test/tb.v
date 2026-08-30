@@ -136,6 +136,39 @@ module tb ();
             .delta_phase_valid(pdc_phase_valid)
         );
 
+        wire tick_4mhz;
+        wire start_measurement_ead;
+        wire mic1_pdm_t;
+        wire mic2_pdm_t;
+        wire [5:0] angle_out_ead;
+        wire angle_valid_ead;
+        wire [11:0] echo_window_ead;
+        wire echo_found_ead;
+
+        clk_div_10 clock_4mhz_module (
+            .clk(clk),
+            .rst_n(rst_n),
+            .tick_4mhz(tick_4mhz)
+        );
+
+        echo_angle_detector echo_angle_detector_test (
+            `ifdef GL_TEST
+                .VPWR(VPWR),
+                .VGND(VGND),
+            `endif
+
+            .clk(clk),
+            .rst_n(rst_n),
+            .tick_4mhz(tick_4mhz),
+            .start_measurement(start_measurement_ead),
+            .mic1_pdm(mic1_pdm_t),
+            .mic2_pdm(mic2_pdm_t),
+            .angle_out(angle_out_ead),
+            .angle_valid(angle_valid_ead),
+            .echo_window(echo_window_ead),
+            .echo_found(echo_found_ead)
+        );
+
     `endif
 
 endmodule

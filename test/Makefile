@@ -51,7 +51,7 @@ TOPLEVEL         = tb
 ifeq ($(GATES),yes)
 COCOTB_TEST_MODULES = tb_echo_timing,mic_us_power_sequence # only tests that apply to the complete design
 else
-COCOTB_TEST_MODULES = phase_difference_calculator,atan2_cordic,tb_echo_timing,mic_us_power_sequence # modules that are tested separately can be added here aswell
+COCOTB_TEST_MODULES = angle_module_test,phase_difference_calculator,atan2_cordic,tb_echo_timing,mic_us_power_sequence # modules that are tested separately can be added here aswell
 endif
 
 # Include cocotb's make rules to take care of the simulator setup

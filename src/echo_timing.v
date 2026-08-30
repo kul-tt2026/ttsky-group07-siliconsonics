@@ -69,7 +69,7 @@ module echo_angle_detector (
     output reg echo_found
 );
 
-    localparam THRESHOLD = 8'd7; // |I|+|Q| threshold
+    localparam THRESHOLD = 9'd7; // |I|+|Q| threshold
     localparam MIN_WIDTH = 4'd5; // minimum echo length
     localparam BLANK     = 7'd64; // first BLANK ignored windows (direct transmitter -> mic filter)
 
@@ -147,7 +147,7 @@ module echo_angle_detector (
     phase_difference_to_angle angle_lut (
         .clk(clk),
         .rst_n(rst_n),
-        .delta_phase_in(delta_phase_wire),
+        .delta_phase_in(delta_phase),
         .angle_out(table_angle),
         .invalid_input(table_invalid)
     );
@@ -166,6 +166,9 @@ module echo_angle_detector (
             echo_found <= '0;
             echo_window <= '0;
             phase1 <= '0;
+            echo_start <= '0;
+            cordic_x   <= '0;
+            cordic_y   <= '0;
         end
         else begin
             angle_valid <= '0;
@@ -180,11 +183,14 @@ module echo_angle_detector (
                         acc_Q2 <= '0;
                         accum_cnt <= '0;
                         echo_found <= '0;
+                        echo_start <= '0;
+                        cordic_x   <= '0;
+                        cordic_y   <= '0;
                         state <= ACCUM;
                     end
                 end
                 ACCUM: begin
-                    if (iq1_valid && iq2_valid) begin
+                    if (iq1_valid && iq2_valid && tick_4mhz) begin
                         if (sig1 >= THRESHOLD && sig2 >= THRESHOLD // past first gate AND both signals above threshold -> accumulate
                             && window_counter >= BLANK) begin
 
