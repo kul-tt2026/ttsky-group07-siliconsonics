@@ -22,6 +22,7 @@ project:
     - "echo_timing.v"
     - "hardware_controller.v"
     - "angle_estimation.v"
+    - "distance_calculation.v"
    # - "pdm_detectors.v"
    # - "multiplier.v"
    # - "min_finder.v"
