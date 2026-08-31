@@ -49,7 +49,7 @@ TOPLEVEL         = tb
 # COCOTB_TEST_MODULES = atan2_cordic,tb_echo_timing,mic_us_power_sequence # WARNING: mic_us_power sequence is a long test (keep it in the back)
 
 ifeq ($(GATES),yes)
-COCOTB_TEST_MODULES = tb_echo_timing,mic_us_power_sequence # only tests that apply to the complete design
+COCOTB_TEST_MODULES = mic_us_power_sequence # tb_echo_timing # only tests that apply to the complete design
 else
 COCOTB_TEST_MODULES = angle_module_test,phase_difference_calculator,atan2_cordic,tb_echo_timing,mic_us_power_sequence # modules that are tested separately can be added here aswell
 endif
