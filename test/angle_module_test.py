@@ -117,6 +117,14 @@ def safe_int(val):
 # -------------------------------------------------------------------------
 @cocotb.test()
 async def test_echo_angle_diagnostic(dut):
+    # data_path = (
+    #     Path(__file__).resolve().parent
+    #     / "data"
+    #     / "2026-07-29_example-synthetic"
+    #     / "raw"
+    #     / "capture_001.pdm"
+    # )
+
     data_path = (
         Path(__file__).resolve().parent
         / "data"
