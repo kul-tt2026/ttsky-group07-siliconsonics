@@ -1,10 +1,3 @@
-/*
-* Copyright (c) 2024 Your Name
-* SPDX-License-Identifier: Apache-2.0
-*/
-
-`default_nettype none
-
 module tt_um_siliconsonics (
     input wire [7:0] ui_in,
     output wire [7:0] uo_out,
