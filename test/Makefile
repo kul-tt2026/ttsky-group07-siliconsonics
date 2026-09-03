@@ -27,7 +27,11 @@ PROJECT_SOURCES = \
     transducer_ping_generator.v \
     mic_clock_sequence.v \
     atan2_cordic_16b.v \
-    phase_difference_to_angle.v
+    phase_difference_to_angle.v \
+    uart_tx.v \
+    uart_rx.v \
+    byte_fifo.v \
+    measurement_controller.v
 
 ifneq ($(GATES),yes)
 
@@ -51,6 +55,14 @@ VERILOG_SOURCES += $(PDK_PATH)/libs.ref/sky130_fd_sc_hd/verilog/sky130_fd_sc_hd.
 # This gets copied in by the GDS action workflow
 VERILOG_SOURCES += $(PWD)/gate_level_netlist.v
 
+endif
+
+# uart_test would take ~25 min with the real 1 s auto period and 400 ms
+# lockout; shorten both for simulation. uart_test.py's AUTO_MS / LOCKOUT_MS
+# must match these (30 ms / 20 ms).
+ifneq ($(GATES),yes)
+COMPILE_ARGS    += -Ptb.user_project.main_inst.AUTO_PERIOD_TICKS=120000
+COMPILE_ARGS    += -Ptb.user_project.main_inst.LOCKOUT_TICKS=80000
 endif
 
 # Include the testbench sources:
@@ -78,7 +90,7 @@ ifeq ($(GATES),yes)
 COCOTB_TEST_MODULES = mic_us_power_sequence
 else
 # Modules tested separately can be added here as well:
-COCOTB_TEST_MODULES = angle_module_test,atan2_cordic,mic_us_power_sequence
+COCOTB_TEST_MODULES = angle_module_test,atan2_cordic,uart_test,mic_us_power_sequence
 endif
 
 # Include cocotb's make rules to take care of the simulator setup
