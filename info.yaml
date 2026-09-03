@@ -3,7 +3,7 @@ project:
   title:        "ultrasonic phased array sonar"      # Project title
   author:       "SiliconSonics"      # Your name
   discord:      ""      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
-  description:  "Digital sonar processor. Drives a 40 kHz ultrasonic transducer, demodulates the returning echo from two PDM microphones with square-wave I/Q correlators, and reports the echo distance as a window index plus the bearing derived from the phase difference between the microphones."      # One line description of what your project does
+  description:  "Digital sonar processor. Drives a 40 kHz ultrasonic transducer, demodulates the returning echo from two PDM microphones with square-wave I/Q correlators, and reports echo distance and bearing on parallel pins and over a 115200 baud UART. Supports single-shot and once-per-second automatic measurement."      # One line description of what your project does
   language:     "Verilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
   clock_hz:     40000000       # Clock frequency in Hz (or 0 if not applicable)
 
@@ -29,22 +29,27 @@ project:
     - "mic_clock_sequence.v"
     - "atan2_cordic_16b.v"
     - "phase_difference_to_angle.v"
+    - "uart_tx.v"
+    - "uart_rx.v"
+    - "byte_fifo.v"
+    - "measurement_controller.v"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 # This section is for the datasheet/website. Use descriptive names (e.g., RX, TX, MOSI, SCL, SEG_A, etc.).
 pinout:
   # Inputs
-  ui[0]: "start_measurement"
+  ui[0]: "start_measurement (rising edge)"
   ui[1]: "mic1_pdm"
   ui[2]: "mic2_pdm"
   ui[3]: "mux_sel"
-  ui[4]: ""
-  ui[5]: ""
+  ui[4]: "uart_rx"
+  ui[5]: "auto_enable"
   ui[6]: ""
   ui[7]: "restart_mic"
 
   # Outputs
-  # mux_sel low: echo_window_index, mux_sel high: angle_out_horizontal
+  # mux_sel low : data_out = echo_window_index[11:0]
+  # mux_sel high: data_out = {auto_mode, mic_ready, busy, result_ready, 2'b00, angle[5:0]}
   uo[0]: "data_out[0]"
   uo[1]: "data_out[1]"
   uo[2]: "data_out[2]"
@@ -60,7 +65,7 @@ pinout:
   uio[1]: "data_out[9]"
   uio[2]: "data_out[10]"
   uio[3]: "data_out[11]"
-  uio[4]: "echo_found"
+  uio[4]: "uart_tx"
   uio[5]: "transducer_drive_a"
   uio[6]: "transducer_drive_b"
   uio[7]: "mic_clk"

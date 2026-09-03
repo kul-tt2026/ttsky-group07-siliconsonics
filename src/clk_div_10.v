@@ -1,3 +1,4 @@
+// divides clk signal by 10 @ 10% duty cycle
 module clk_div_10 (
     input wire clk, // input 40MHz
     input wire rst_n,

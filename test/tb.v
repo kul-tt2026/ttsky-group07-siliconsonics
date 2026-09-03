@@ -25,6 +25,11 @@ module tb ();
     wire transducer_drive_b = uio_out[6];
     wire mic_clk = uio_out[7];
 
+    // Edge counter for the mic clock, so cocotb can read a frequency once
+    // per ms instead of waking Python on every 40 MHz clock edge.
+    reg [31:0] mic_clk_edges = 32'd0;
+    always @(posedge mic_clk) mic_clk_edges <= mic_clk_edges + 1;
+
     wire start_measurement = ui_in[0];
     wire mic1_pdm = ui_in[1];
     wire restart_mic = ui_in[7];
@@ -64,6 +69,22 @@ module tb ();
     );
 
     `ifndef GL_TEST
+        // DEBUG
+        always @(posedge clk) if (user_project.main_inst.controller.ext_rise)
+            $display("DBG %0t ext_rise: can=%b lockout_ok=%b mic_ready=%b since=%0d req=%b do=%b auto_fire=%b cmd=%b",
+                $time, user_project.main_inst.controller.can_ping, user_project.main_inst.controller.lockout_ok,
+                user_project.main_inst.controller.mic_ready, user_project.main_inst.controller.since_ping,
+                user_project.main_inst.controller.ping_req, user_project.main_inst.controller.do_ping,
+                user_project.main_inst.controller.auto_fire, user_project.main_inst.controller.cmd_ping);
+        always @(posedge clk) if (user_project.main_inst.controller.start_pulse) $display("DBG %0t START_PULSE", $time);
+
+        // Shorten the controller timers for RTL simulation. The real
+        // values (1 s / 400 ms / 102.4 ms) would make every test take
+        // minutes. Icarus -P cannot reach nested instances, so defparam.
+        // tick_4mhz units: 4000 = 1 ms.
+        defparam user_project.main_inst.AUTO_PERIOD_TICKS = 22'd120000;  // 30 ms
+        defparam user_project.main_inst.LOCKOUT_TICKS     = 22'd80000;   // 20 ms
+        defparam user_project.main_inst.MEAS_TICKS        = 22'd60000;   // 15 ms
 
         // ------------------------------------------------------------------
         // Anything cocotb WRITES to must be a reg. A wire with no Verilog

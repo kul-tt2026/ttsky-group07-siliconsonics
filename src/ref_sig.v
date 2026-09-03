@@ -1,3 +1,5 @@
+// generates 2 square reference signals with a phase difference of 90 degrees @40kHz
+// Square-wave approximation of sin/cos for correlation
 module ref_sig (
     input wire clk, // 40MHz clock
     input wire tick_4mhz, // 4MHz 10% duty cycle
