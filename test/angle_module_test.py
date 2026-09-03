@@ -250,13 +250,15 @@ async def test_echo_angle_diagnostic(dut):
         f"Expected {len(expected)} echoes, got {len(hw_results)}"
     )
 
-    # The hardware reports the window where the echo STARTED (echo_start in
-    # echo_angle_detector.v). The model's 'start' is the same quantity.
-    # 'peak' is the run centre and will differ by roughly half the run length.
+        # Hardware window_counter increments on the same clock edge that latches
+    # I/Q, so when iq_valid is high for model window k the counter reads k+1.
+    # The hardware index is therefore 1-based relative to the numpy array.
+    HW_WINDOW_OFFSET = 1
+
     for hw, exp in zip(hw_results, expected):
-        assert hw["window"] == exp["start"], (
-            f"Echo window mismatch: expected start window {exp['start']}, "
-            f"got {hw['window']}"
+        assert hw["window"] == exp["start"] + HW_WINDOW_OFFSET, (
+            f"Echo window mismatch: expected start window "
+            f"{exp['start'] + HW_WINDOW_OFFSET}, got {hw['window']}"
         )
         assert hw["angle"] == exp["angle_raw"], (
             f"window {hw['window']}: expected angle {exp['angle_raw']}, "
