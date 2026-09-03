@@ -1,3 +1,33 @@
+// atan2(I, Q) from the complex product -> delta phi
+// arctg table:
+/*
+arctg(1) = pi/4
+arctg(1/2) = 0.463648
+arctg(1/4) = 0.244979
+arctg(1/8) = 0.124355
+arctg(1/16) = 0.062419
+arctg(1/32) = 0.03124
+arctg(1/64) = 0.015624
+arctg(1/128) = 0.007812
+
+script for generation is of the coordinates: arctg_table.py
+
+rotation matrix:
+
+A = [
+    cos(theta)  -sin(theta);
+    sin(theta)  cos(theta)
+] = cos(theta) * [
+    1           -tan(theta);
+    tan(theta)  1
+]
+
+=> cos(theta) is omitted as it's not necessary
+x_i = x_(i-1)           -/+ y_(i-1) * tan(t)
+y_i = x_(i-1) * tan(t)  +/- y_(i-1)
+
+*/	
+
 module atan2_cordic_16b (
     input wire clk,
     input wire rst_n,

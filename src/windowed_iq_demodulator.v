@@ -1,3 +1,4 @@
+// calculates I and Q at 40kHz for the mic_pdm signal over 100-sample windows, samples are read @ 4MHz.
 module windowed_iq_demodulator (
     input wire clk, // 40MHz clock
     input wire tick_4mhz, // 4MHz 10% duty cycle

@@ -1,3 +1,5 @@
+//Signed accumulate-and-dump correlator (+1/-1 per sample) for 2 pdm signals @ 4MHz
+// when using sin/cos ref_signals results in I/Q components
 module correlator (
     input wire clk,
     input wire tick_4mhz, // 4MHz 10% duty cycle

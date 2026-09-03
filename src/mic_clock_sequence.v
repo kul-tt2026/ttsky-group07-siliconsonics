@@ -1,3 +1,6 @@
+// Set's the mic_clk to follow the powerup sequence:
+// Powered off -> Normal mode -> Ultrasonic mode -> ready.
+// When the microphone should be ready mic_ready is set to HI
 module ultrasonic_mic_powerup_sequence (
     input wire clk,
     input wire tick_4mhz,
