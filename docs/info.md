@@ -13,8 +13,20 @@ Reads the pdm signals of a microphone and times the echo of a 40kHz signal.
 
 ## How to test
 
-Power the transducer for 8 cycles simultaniously with a HI signal to the "restart" pin. When echo_found turns HI the "window index" can be read and transformed into a distance using: window_index * 100 / 4,000,000 * 343 / 2 = distance \[m\]
+
+## Interpreting the output
+
+### Window index
+The window index can be used to calculate the distance to the target using the following formula:
+distance \[m\] = $\text{window\_index} \cdot 100 / 4\,000\,000 \cdot 343 / 2$
+
+### Output angles
+The output_angle provided by the chip can be converted to radians or degrees using the formulas below:
+
+angle \[rad\] = $\text{output\_angle} \cdot 2\pi / 2^6$
+
+angle \[deg\] = $\text{output\_angle} \cdot 360 / 2^6 $
 
 ## External hardware
 
-Custom PCB with microphones and a transducer.
+Custom PCB with microphones and a transducer. The design used for testing is available at https://github.com/milllep/TinyTapeout-PCB.
