@@ -40,7 +40,7 @@ module first_echo_timing (
         end
         else begin
             if (start_measurement) begin
-                echo_window_index <= '0;
+                echo_window_index <= 12'd0;
                 echo_found <= 1'b0;
             end
             else if (tick_4mhz && iq_valid && !echo_found) begin
@@ -113,6 +113,7 @@ module echo_angle_detector (
     );
 
     wire [11:0] window_counter = win_cnt1; // win_cnt1 and win_cnt2 are identical
+    wire _unused_wc2 = &{1'b0, win_cnt2};
 
     wire [7:0] abs_I1 = I1[7] ? -I1 : I1;
     wire [7:0] abs_Q1 = Q1[7] ? -Q1 : Q1;
@@ -158,37 +159,37 @@ module echo_angle_detector (
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             state <= IDLE;
-            acc_I1 <= '0;
-            acc_Q1 <= '0;
-            acc_I2 <= '0;
-            acc_Q2 <= '0;
-            accum_cnt <= '0;
-            cordic_load <= '0;
-            angle_valid <= '0;
-            angle_out <= '0;
-            echo_found <= '0;
-            echo_window <= '0;
-            phase1 <= '0;
-            echo_start <= '0;
-            cordic_x <= '0;
-            cordic_y <= '0;
+            acc_I1 <= 16'd0;
+            acc_Q1 <= 16'd0;
+            acc_I2 <= 16'd0;
+            acc_Q2 <= 16'd0;
+            accum_cnt <= 12'd0;
+            cordic_load <= 1'b0;
+            angle_valid <= 1'b0;
+            angle_out <= 6'd0;
+            echo_found <= 1'b0;
+            echo_window <= 12'd0;
+            phase1 <= 12'd0;
+            echo_start <= 12'd0;
+            cordic_x <= 16'd0;
+            cordic_y <= 16'd0;
         end
         else begin
-            angle_valid <= '0;
-            cordic_load <= '0;
+            angle_valid <= 1'b0;
+            cordic_load <= 1'b0;
 
             case (state)
                 IDLE: begin
                     if (start_measurement) begin
-                        acc_I1 <= '0;
-                        acc_Q1 <= '0;
-                        acc_I2 <= '0;
-                        acc_Q2 <= '0;
-                        accum_cnt <= '0;
-                        echo_found <= '0;
-                        echo_start <= '0;
-                        cordic_x <= '0;
-                        cordic_y <= '0;
+                        acc_I1 <= 16'd0;
+                        acc_Q1 <= 16'd0;
+                        acc_I2 <= 16'd0;
+                        acc_Q2 <= 16'd0;
+                        accum_cnt <= 12'd0;
+                        echo_found <= 1'b0;
+                        echo_start <= 12'd0;
+                        cordic_x <= 16'd0;
+                        cordic_y <= 16'd0;
                         state <= ACCUM;
                     end
                 end
@@ -197,29 +198,29 @@ module echo_angle_detector (
                         if (sig1 >= THRESHOLD && sig2 >= THRESHOLD // past first gate AND both signals above threshold -> accumulate
                             && window_counter >= {{5{1'b0}}, BLANK}) begin
 
-                            if (accum_cnt == '0) begin
+                            if (accum_cnt == 12'd0) begin
                                 echo_start <= window_counter;
                             end
 
-                            acc_I1 <= acc_I1 + {{8{I1[$high(I1)]}}, I1};
-                            acc_Q1 <= acc_Q1 + {{8{Q1[$high(Q1)]}}, Q1};
-                            acc_I2 <= acc_I2 + {{8{I2[$high(I2)]}}, I2};
-                            acc_Q2 <= acc_Q2 + {{8{Q2[$high(Q2)]}}, Q2};
+                            acc_I1 <= acc_I1 + {{8{I1[7]}}, I1};
+                            acc_Q1 <= acc_Q1 + {{8{Q1[7]}}, Q1};
+                            acc_I2 <= acc_I2 + {{8{I2[7]}}, I2};
+                            acc_Q2 <= acc_Q2 + {{8{Q2[7]}}, Q2};
 
                             accum_cnt <= accum_cnt + 1;
                         end
                         else if (accum_cnt >= {{8{1'b0}}, MIN_WIDTH}) begin // proceed to the next state if window is long enough AND threshold isn't crossed anymore
                             cordic_x <= acc_I1;
                             cordic_y <= acc_Q1;
-                            cordic_load <= '1;
+                            cordic_load <= 1'b1;
                             state <= ATAN2_M1;
                         end
-                        else if (accum_cnt > '0) begin // there has been accumulation, but it stopped and the total window isnt't long enough
-                            acc_I1 <= '0;
-                            acc_Q1 <= '0;
-                            acc_I2 <= '0;
-                            acc_Q2 <= '0;
-                            accum_cnt <= '0;
+                        else if (accum_cnt > 12'd0) begin // there has been accumulation, but it stopped and the total window isnt't long enough
+                            acc_I1 <= 16'd0;
+                            acc_Q1 <= 16'd0;
+                            acc_I2 <= 16'd0;
+                            acc_Q2 <= 16'd0;
+                            accum_cnt <= 12'd0;
                         end
                     end
                 end
@@ -228,7 +229,7 @@ module echo_angle_detector (
                         phase1 <= cordic_angle;
                         cordic_x <= acc_I2;
                         cordic_y <= acc_Q2;
-                        cordic_load <= '1;
+                        cordic_load <= 1'b1;
                         state <= ATAN2_M2;
                     end
                 end
@@ -245,13 +246,15 @@ module echo_angle_detector (
                     echo_window <= echo_start; // echo start, alternative:| + (accum_cnt >> 1);  // center of echo
 
                     // Reset for the next echo
-                    acc_I1 <= '0;
-                    acc_Q1 <= '0;
-                    acc_I2 <= '0; 
-                    acc_Q2 <= '0;
-                    accum_cnt <= '0;
+                    acc_I1 <= 16'd0;
+                    acc_Q1 <= 16'd0;
+                    acc_I2 <= 16'd0;
+                    acc_Q2 <= 16'd0;
+                    accum_cnt <= 12'd0;
                     state <= ACCUM;
                 end
+
+                default: state <= IDLE;
 
             endcase
         end

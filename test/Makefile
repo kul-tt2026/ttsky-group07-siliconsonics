@@ -15,7 +15,19 @@ FST             ?= -fst # Use more efficient FST format
 TOPLEVEL_LANG   ?= verilog
 SRC_DIR          = $(PWD)/../src
 
-PROJECT_SOURCES  = project.v main.v echo_timing.v hardware_controller.v angle_estimation.v iq_demodulation.v
+PROJECT_SOURCES = \
+    project.v \
+    main.v \
+    data_mux.v \
+    clk_div_10.v \
+    ref_sig.v \
+    correlator.v \
+    windowed_iq_demodulator.v \
+    echo_angle_detector.v \
+    transducer_ping_generator.v \
+    mic_clock_sequence.v \
+    atan2_cordic_16b.v \
+    phase_difference_to_angle.v
 
 ifneq ($(GATES),yes)
 
@@ -45,13 +57,28 @@ endif
 VERILOG_SOURCES += $(PWD)/tb.v
 TOPLEVEL         = tb
 
-# List test modules to run, separated by commas and without the .py suffix:
-# COCOTB_TEST_MODULES = atan2_cordic,tb_echo_timing,mic_us_power_sequence # WARNING: mic_us_power sequence is a long test (keep it in the back)
+# ==============================================================================
+# Test modules to run, separated by commas and without the .py suffix.
+#
+# WARNING: mic_us_power_sequence simulates the full 110 ms power-up sequence.
+#          It takes ~3 minutes, so keep it last.
+#
+# Removed and why:
+#   phase_difference_calculator - module no longer in src/ (not instantiated
+#                                 by main.v; echo_angle_detector sequences the
+#                                 CORDIC itself)
+#   tb_echo_timing              - tested first_echo_timing, which the chip no
+#                                 longer uses. main.v uses echo_angle_detector,
+#                                 which needs BOTH mics; that test only drives
+#                                 ui_in[1] so sig2 never crosses the threshold.
+# ==============================================================================
 
 ifeq ($(GATES),yes)
-COCOTB_TEST_MODULES = mic_us_power_sequence # tb_echo_timing # only tests that apply to the complete design
+# Only tests that apply to the complete design:
+COCOTB_TEST_MODULES = mic_us_power_sequence
 else
-COCOTB_TEST_MODULES = angle_module_test,phase_difference_calculator,atan2_cordic,tb_echo_timing,mic_us_power_sequence # modules that are tested separately can be added here aswell
+# Modules tested separately can be added here as well:
+COCOTB_TEST_MODULES = angle_module_test,atan2_cordic,mic_us_power_sequence
 endif
 
 # Include cocotb's make rules to take care of the simulator setup

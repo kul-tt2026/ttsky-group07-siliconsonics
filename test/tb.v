@@ -65,42 +65,25 @@ module tb ();
 
     `ifndef GL_TEST
 
-        wire signed [7:0] atan2_x_in;
-        wire signed [7:0] atan2_y_in;
-        wire atan2_load_input;
+        // ------------------------------------------------------------------
+        // Anything cocotb WRITES to must be a reg. A wire with no Verilog
+        // driver stays at X no matter what the Python assigns to it.
+        // ------------------------------------------------------------------
 
-        wire atan2_angle_valid;
-        wire signed [11:0] atan2_angle_out;
+        reg signed [15:0] atan2_x_in_16;
+        reg signed [15:0] atan2_y_in_16;
+        reg               atan2_load_input_16;
 
+        wire              atan2_angle_valid_16;
+        wire       [11:0] atan2_angle_out_16;
 
-        atan2_cordic cordic_testing (
-            `ifdef GL_TEST
-                .VPWR(VPWR),
-                .VGND(VGND),
-            `endif
-
-            .clk(clk),
-            .rst_n(rst_n),
-            .x_in(atan2_x_in),
-            .y_in(atan2_y_in),
-            .load_input(atan2_load_input),
-            .angle_valid(atan2_angle_valid),
-            .angle_out(atan2_angle_out)
-        );
-
-        wire signed [15:0] atan2_x_in_16;
-        wire signed [15:0] atan2_y_in_16;
-        wire atan2_load_input_16;
-
-        wire atan2_angle_valid_16;
-        wire signed [11:0] atan2_angle_out_16;
+        initial begin
+            atan2_x_in_16       = 16'sd0;
+            atan2_y_in_16       = 16'sd0;
+            atan2_load_input_16 = 1'b0;
+        end
 
         atan2_cordic_16b cordic_testing_16 (
-            `ifdef GL_TEST
-                .VPWR(VPWR),
-                .VGND(VGND),
-            `endif
-
             .clk(clk),
             .rst_n(rst_n),
             .x_in(atan2_x_in_16),
@@ -110,40 +93,21 @@ module tb ();
             .angle_out(atan2_angle_out_16)
         );
 
-        wire signed [7:0] I1;
-        wire signed [7:0] Q1;
-        wire signed [7:0] I2;
-        wire signed [7:0] Q2;
-        
-        wire pdc_load_input;
-        wire [11:0] pdc_phase_out;
-        wire pdc_phase_valid;
+        reg        start_measurement_ead;
+        reg        mic1_pdm_t;
+        reg        mic2_pdm_t;
 
-        phase_difference_calculator inc_sig_phase_difference_calculator (
-            `ifdef GL_TEST
-                .VPWR(VPWR),
-                .VGND(VGND),
-            `endif
-
-            .clk(clk),
-            .rst_n(rst_n),
-            .I1(I1),
-            .I2(I2),
-            .Q1(Q1),
-            .Q2(Q2),
-            .load_input(pdc_load_input),
-            .delta_phase_out(pdc_phase_out),
-            .delta_phase_valid(pdc_phase_valid)
-        );
-
-        wire tick_4mhz;
-        wire start_measurement_ead;
-        wire mic1_pdm_t;
-        wire mic2_pdm_t;
+        wire       tick_4mhz;
         wire [5:0] angle_out_ead;
-        wire angle_valid_ead;
+        wire       angle_valid_ead;
         wire [11:0] echo_window_ead;
-        wire echo_found_ead;
+        wire       echo_found_ead;
+
+        initial begin
+            start_measurement_ead = 1'b0;
+            mic1_pdm_t            = 1'b0;
+            mic2_pdm_t            = 1'b0;
+        end
 
         clk_div_10 clock_4mhz_module (
             .clk(clk),
@@ -152,11 +116,6 @@ module tb ();
         );
 
         echo_angle_detector echo_angle_detector_test (
-            `ifdef GL_TEST
-                .VPWR(VPWR),
-                .VGND(VGND),
-            `endif
-
             .clk(clk),
             .rst_n(rst_n),
             .tick_4mhz(tick_4mhz),
@@ -172,6 +131,3 @@ module tb ();
     `endif
 
 endmodule
-
-
-

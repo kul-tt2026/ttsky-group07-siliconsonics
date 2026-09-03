@@ -103,7 +103,7 @@ module correlator (
 
 endmodule
 
-// calculates I and Q at 40kHz for the mic_pdm signal over 100-sample windows, samples are read @ 4MHz. 
+// calculates I and Q at 40kHz for the mic_pdm signal over 100-sample windows, samples are read @ 4MHz.
 module windowed_iq_demodulator (
     input wire clk, // 40MHz clock
     input wire tick_4mhz, // 4MHz 10% duty cycle
@@ -122,13 +122,13 @@ module windowed_iq_demodulator (
     wire signed [7:0] corr_I;
     wire signed [7:0] corr_Q;
 
-    reg [6:0] sample_index; // 0->99 (0 127)
+    reg [6:0] sample_index; // 0->100 (0 127)
     reg new_window_reg; // for storing whether a new window should be started
 
     // resets correlators, HI on first sample of each window, LO on subsequent samples
     wire new_window = new_window_reg;
 
-    wire active = (window_counter != '1); // active while last window is not reached
+    wire active = (window_counter != 12'hFFF); // active while last window is not reached
 
     ref_sig reference_signals (
         .clk(clk),
@@ -163,23 +163,23 @@ module windowed_iq_demodulator (
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            window_counter <= '1;
+            window_counter <= 12'hFFF;
 
-            sample_index <= '0;
+            sample_index <= 7'd0;
             new_window_reg <= 1'b0;
             iq_valid <= 1'b0;
-            I <= '0;
-            Q <= '0;
+            I <= 8'd0;
+            Q <= 8'd0;
         end
         else begin
             if (start_measurement) begin
-                window_counter <= '0;
-                sample_index <= '0;
+                window_counter <= 12'd0;
+                sample_index <= 7'd0;
                 new_window_reg <= 1'b0;
 
                 iq_valid <= 1'b0;
-                I <= '0;
-                Q <= '0;
+                I <= 8'd0;
+                Q <= 8'd0;
             end
             else if (tick_4mhz && active) begin
                 iq_valid <= 1'b0;
@@ -194,6 +194,62 @@ module windowed_iq_demodulator (
                 end
                 else begin
                     sample_index <= sample_index + 1;
+                end
+            end
+        end
+    end
+
+endmodule
+
+
+// Detects first echo by thresholding |I|+|Q| from the I/Q demodulator
+// when |I| + |Q| >= threshold: echo_found turns HI and echo_window_index can be read
+module first_echo_timing (
+    input wire clk,
+    input wire tick_4mhz, // 4MHz 10% duty cycle
+    input wire rst_n,
+    input wire start_measurement, // start
+    input wire mic_pdm, // mic pdm signal @ 4MHz
+
+    output reg [11:0] echo_window_index, // window index where |I| + |Q| went over a set threshold
+    output reg echo_found // when |I| + |Q| go over the threshold this is set to HI, meaning echo_window_index can be read
+);
+    wire iq_valid;
+    wire [11:0] window_counter;
+
+    wire signed [7:0] I;
+    wire signed [7:0] Q;
+
+    wire [7:0] abs_I = I[7] ? -I : I;
+    wire [7:0] abs_Q = Q[7] ? -Q : Q;
+    wire [7:0] sig_strength = abs_I + abs_Q; // abs(I) + abs(Q), I and Q always within [-100, 100] -> 8 bits
+
+    windowed_iq_demodulator mic_windowed_iq_demodulator (
+        .clk(clk),
+        .tick_4mhz(tick_4mhz),
+        .rst_n(rst_n),
+        .start_measurement(start_measurement),
+        .mic_pdm(mic_pdm),
+        .I(I),
+        .Q(Q),
+        .iq_valid(iq_valid),
+        .window_counter(window_counter)
+    );
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            echo_window_index <= 12'd0;
+            echo_found <= 1'b1;
+        end
+        else begin
+            if (start_measurement) begin
+                echo_window_index <= 12'd0;
+                echo_found <= 1'b0;
+            end
+            else if (tick_4mhz && iq_valid && !echo_found) begin
+                if (sig_strength >= 8'd16 && window_counter >= 12'd64) begin // 16: empirical noise/echo threshold, 64: empirical echo_end threshold
+                    echo_window_index <= window_counter;
+                    echo_found <= 1'b1;
                 end
             end
         end

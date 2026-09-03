@@ -1,10 +1,3 @@
-/*
-* Copyright (c) 2024 Your Name
-* SPDX-License-Identifier: Apache-2.0
-*/
-
-`default_nettype none
-
 module tt_um_siliconsonics (
     input wire [7:0] ui_in,
     output wire [7:0] uo_out,
@@ -23,7 +16,7 @@ module tt_um_siliconsonics (
     wire restart_mic = ui_in[7];
 
     wire [11:0] echo_window_index;
-    wire [11:0] angle_out_horizontal;
+    wire [5:0]  angle_out_horizontal;
     wire angle_valid_horizontal;
     wire [11:0] mux_data_out;
 
@@ -50,7 +43,7 @@ module tt_um_siliconsonics (
         .WIDTH(12)
     ) data_mux_inst (
         .data0(echo_window_index),
-        .data1(angle_out_horizontal),
+        .data1({6'b0, angle_out_horizontal}),
         .sel(mux_sel),
         .data_out(mux_data_out)
     );
