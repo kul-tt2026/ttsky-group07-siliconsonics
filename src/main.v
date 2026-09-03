@@ -9,7 +9,7 @@ module main (
     output wire transducer_drive_a,
     output wire transducer_drive_b,
     output wire mic_clk,
-    output wire [11:0] angle_out_horizontal,
+    output wire [5:0]  angle_out_horizontal,
     output wire angle_valid_horizontal
 );
     wire tick_4mhz;

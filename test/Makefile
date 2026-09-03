@@ -15,8 +15,20 @@ FST             ?= -fst # Use more efficient FST format
 TOPLEVEL_LANG   ?= verilog
 SRC_DIR          = $(PWD)/../src
 
-PROJECT_SOURCES  = project.v main.v echo_timing.v hardware_controller.v angle_estimation.v iq_demodulation.v
-
+PROJECT_SOURCES = \
+	project.v \
+	main.v \
+	data_mux.v \
+	clk_div_10.v \
+	ref_sig.v \
+	correlator.v \
+	windowed_iq_demodulator.v \
+	echo_angle_detector.v \
+	transducer_ping_generator.v \
+	mic_clock_sequence.v \
+	atan2_cordic_16b.v \
+	phase_difference_to_angle.v
+	
 ifneq ($(GATES),yes)
 
 # RTL simulation:
