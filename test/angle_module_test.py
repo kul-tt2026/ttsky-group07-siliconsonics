@@ -4,6 +4,7 @@ import cocotb
 import numpy as np
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
+from cocotb.utils import get_sim_time
 
 
 import sys
@@ -117,14 +118,6 @@ def safe_int(val):
 # -------------------------------------------------------------------------
 @cocotb.test()
 async def test_echo_angle_diagnostic(dut):
-    # data_path = (
-    #     Path(__file__).resolve().parent
-    #     / "data"
-    #     / "2026-07-29_example-synthetic"
-    #     / "raw"
-    #     / "capture_001.pdm"
-    # )
-
     data_path = (
         Path(__file__).resolve().parent
         / "data"
@@ -140,7 +133,7 @@ async def test_echo_angle_diagnostic(dut):
     dut._log.info(f"Python model predicts {len(expected)} echo(s)")
     for e in expected:
         dut._log.info(
-            f"  peak@{e['peak']:3d} | {e['range_m']:.2f} m | "
+            f"  start@{e['start']:3d} peak@{e['peak']:3d} | {e['range_m']:.2f} m | "
             f"delta={e['delta_phase']:4d} | angle_raw={e['angle_raw']}"
         )
 
@@ -177,7 +170,7 @@ async def test_echo_angle_diagnostic(dut):
             await RisingEdge(dut.clk)
             try:
                 valid = int(inst.angle_valid.value)
-            except:
+            except ValueError:
                 valid = 0
             if valid and not prev_valid:
                 hw_results.append(
@@ -218,7 +211,7 @@ async def test_echo_angle_diagnostic(dut):
             if next_dump <= 0:
                 next_dump = dump_every
                 dut._log.info(
-                    f"[{int(dut.clk.value):>8}] "
+                    f"[{get_sim_time('us'):9.1f} us] "
                     f"state={safe_int(inst.state.value)} "
                     f"wc={safe_int(inst.window_counter.value)} "
                     f"sig1={safe_int(inst.sig1.value):>3} "
@@ -238,7 +231,7 @@ async def test_echo_angle_diagnostic(dut):
         dut._log.error("NO ECHOES DETECTED")
         dut._log.error("Possible causes:")
         dut._log.error("  1. start_measurement_ead is not reaching the internal module")
-        dut._log.error("  2. mic1_pdm_t / mic2_pdm_t are X due to driver conflict with ui_in")
+        dut._log.error("  2. mic1_pdm_t / mic2_pdm_t are X (must be reg in tb.v, not wire)")
         dut._log.error("  3. tick_4mhz is not toggling")
         dut._log.error("  4. sig1/sig2 never cross threshold")
 
@@ -249,7 +242,30 @@ async def test_echo_angle_diagnostic(dut):
         f"acc={safe_int(inst.accum_cnt.value)}"
     )
 
-    # Soft assertion so you still see the log
-    assert len(hw_results) >= len(expected), (
+    # ---------------------------------------------------------------------
+    # Verification
+    # ---------------------------------------------------------------------
+
+    assert len(hw_results) == len(expected), (
         f"Expected {len(expected)} echoes, got {len(hw_results)}"
+    )
+
+        # Hardware window_counter increments on the same clock edge that latches
+    # I/Q, so when iq_valid is high for model window k the counter reads k+1.
+    # The hardware index is therefore 1-based relative to the numpy array.
+    HW_WINDOW_OFFSET = 1
+
+    for hw, exp in zip(hw_results, expected):
+        assert hw["window"] == exp["start"] + HW_WINDOW_OFFSET, (
+            f"Echo window mismatch: expected start window "
+            f"{exp['start'] + HW_WINDOW_OFFSET}, got {hw['window']}"
+        )
+        assert hw["angle"] == exp["angle_raw"], (
+            f"window {hw['window']}: expected angle {exp['angle_raw']}, "
+            f"got {hw['angle']}"
+        )
+
+    dut._log.info(
+        f"PASS: all {len(expected)} echo(s) match the model "
+        f"(window and angle)"
     )

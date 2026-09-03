@@ -25,6 +25,11 @@ module tb ();
     wire transducer_drive_b = uio_out[6];
     wire mic_clk = uio_out[7];
 
+    // Edge counter for the mic clock, so cocotb can read a frequency once
+    // per ms instead of waking Python on every 40 MHz clock edge.
+    reg [31:0] mic_clk_edges = 32'd0;
+    always @(posedge mic_clk) mic_clk_edges <= mic_clk_edges + 1;
+
     wire start_measurement = ui_in[0];
     wire mic1_pdm = ui_in[1];
     wire restart_mic = ui_in[7];
