@@ -41,7 +41,8 @@ async def test_range_over_pins(dut):
     dut.rst_n.value = 0
     await Timer(500, unit="ns")
     dut.rst_n.value = 1
-    await RisingEdge(dut.clk)
+    for _ in range(20):          # let the netlist settle before reading pins
+        await RisingEdge(dut.clk)
 
     assert int(dut.uio_oe.value) == 0xFF, (
         f"all 8 uio pins must drive out, uio_oe = {int(dut.uio_oe.value):#04x}"

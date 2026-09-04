@@ -9,6 +9,8 @@ You can also include images in this folder and reference them in the markdown. E
 
 ## How it works
 
+![Block diagram](SS.drawio.png)
+
 The chip drives a 40kHz ultrasonic transducer (drive_a/drive_b) for a short burst, then listens on two PDM microphones. Each mic's PDM stream is correlated against 40kHz sine/cosine reference signals (ref_sig) in 100-sample (25microseconds) windows to produce I/Q values (windowed_iq_demodulator + correlator). When the combined I/Q magnitude on both mics crosses a threshold for at least 5 consecutive windows, the chip accumulates I/Q over that echo window, runs a CORDIC atan2 on each mic's accumulated I/Q to get its phase, and takes the phase difference between the two mics. A lookup table (phase_difference_to_angle) maps that phase difference to a 6-bit angle (some phase-difference ranges are geometrically invalid for a 2-mic array and are flagged as invalid). The window index at which the echo started is reported as echo_window_index, from which target distance can be computed. Every echo found during one measurement is reported; the pins always show the most recent one, the UART sends one line per echo.
 
 ## How to test
