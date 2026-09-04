@@ -36,7 +36,7 @@ CLK_NS       = 25
 BIT_NS       = CLKS_PER_BIT * CLK_NS      # 8675 ns per UART bit
 AUTO_MS      = 30                          # shortened from 1000 by the Makefile -P override
 LOCKOUT_MS   = 20                          # shortened from 400 by the Makefile -P override
-MEAS_MS      = 102.4                       # real value (matches the demodulator)
+MEAS_MS      = 15                          # shortened from 102.4 by the tb.v defparam
 
 # Pin map
 UI_START = 0

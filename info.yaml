@@ -3,7 +3,7 @@ project:
   title:        "ultrasonic sonar: range and bearing"      # Project title
   author:       "SiliconSonics"      # Your name
   discord:      ""      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
-  description:  "Digital sonar processor. Drives a 40 kHz ultrasonic transducer, demodulates the returning echo from two PDM microphones with square-wave I/Q correlators, and reports echo distance and bearing on parallel pins and over a 115200 baud UART. Supports single-shot and once-per-second automatic measurement, and single-microphone boards."      # One line description of what your project does
+  description:  "Digital sonar processor. Drives a 40 kHz ultrasonic transducer, demodulates the returning echo from two PDM microphones with square-wave I/Q correlators, and reports echo distance and bearing on parallel pins and over a 115200 baud UART. Supports single-shot and once-per-second automatic measurement, single-microphone boards, and UART-tunable detection thresholds."      # One line description of what your project does
   language:     "Verilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
   clock_hz:     40000000       # Clock frequency in Hz (or 0 if not applicable)
 

@@ -86,11 +86,12 @@ TOPLEVEL         = tb
 # ==============================================================================
 
 ifeq ($(GATES),yes)
-# Only tests that apply to the complete design:
-COCOTB_TEST_MODULES = mic_us_power_sequence
+# Pin-only tests: everything else reaches into the RTL hierarchy, which the
+# gate-level netlist does not have.
+COCOTB_TEST_MODULES = chip_pins_test,mic_us_power_sequence
 else
 # Modules tested separately can be added here as well:
-COCOTB_TEST_MODULES = angle_module_test,atan2_cordic,uart_test,mic_us_power_sequence
+COCOTB_TEST_MODULES = angle_module_test,atan2_cordic,config_test,chip_pins_test,uart_test,mic_us_power_sequence
 endif
 
 # Include cocotb's make rules to take care of the simulator setup

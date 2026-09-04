@@ -22,6 +22,12 @@
 //   'S'  auto measurement OFF      reply: status line
 //   'P'  single ping now           reply: nothing, or "B\n" if refused
 //   '?'  query                     reply: status line
+//   'V'  dump the tuning registers reply: config line
+//   'Cnvv' write tuning register n with hex value vv, reply: config line
+//         n=0 threshold, 1 min_width (windows), 2 blank (windows),
+//         n=3 ping half periods (16 = the default 8-period burst)
+//         Anything that is not a hex digit aborts the command. Values stay
+//         until rst_n, which restores the defaults below.
 //
 // UART replies (chip -> host), every line ends in '\n':
 //   "AR\n" / "AW\n" / "SR\n" / "SW\n"
@@ -32,6 +38,7 @@
 //         aa = angle (2 hex digits, 0..3F). One line per detected echo.
 //   "N\n"   measurement finished with no echo detected
 //   "B\n"   ping refused (mic not ready or lockout still running)
+//   "Vttmmbbpp\n"  tuning registers: threshold, min_width, blank, ping
 //
 // All timers count tick_4mhz pulses, so 4000 ticks = 1 ms.
 module measurement_controller #(
@@ -62,6 +69,12 @@ module measurement_controller #(
     output reg  [7:0]  tx_data,
     output reg         tx_push,
 
+    // Tuning registers, settable over UART
+    output reg  [7:0]  cfg_threshold,
+    output reg  [7:0]  cfg_min_width,
+    output reg  [7:0]  cfg_blank,
+    output reg  [4:0]  cfg_halfcycles,
+
     // Control / status
     output reg         start_pulse,     // one clock high: fire a ping
     output wire        auto_mode,
@@ -72,10 +85,22 @@ module measurement_controller #(
     // ---------------------------------------------------------------- //
     // Command decode
     // ---------------------------------------------------------------- //
-    wire cmd_auto_on  = rx_valid & (rx_data == "A");
-    wire cmd_auto_off = rx_valid & (rx_data == "S");
-    wire cmd_ping     = rx_valid & (rx_data == "P");
-    wire cmd_query    = rx_valid & (rx_data == "?");
+    // Bytes 2..4 of a "Cnvv" command must not be decoded as commands.
+    reg [1:0] cfg_phase;
+    reg [2:0] cfg_addr;
+    reg [3:0] cfg_hi;
+    wire top_level    = rx_valid & (cfg_phase == 2'd0);
+
+    wire cmd_auto_on  = top_level & (rx_data == "A");
+    wire cmd_auto_off = top_level & (rx_data == "S");
+    wire cmd_ping     = top_level & (rx_data == "P");
+    wire cmd_query    = top_level & (rx_data == "?");
+    wire cmd_dump     = top_level & (rx_data == "V");
+    wire cmd_config   = top_level & (rx_data == "C");
+
+    wire [3:0] rx_nib   = rx_data[3:0] + ((rx_data > 8'h39) ? 4'd9 : 4'd0);
+    wire       rx_is_hex = (rx_data >= "0" && rx_data <= "9")
+                         | (rx_data >= "A" && rx_data <= "F");
 
     // ---------------------------------------------------------------- //
     // The two control pins are asynchronous to clk (a button, a GPIO from
@@ -123,7 +148,7 @@ module measurement_controller #(
     // ---------------------------------------------------------------- //
     // Message requests, latched until the message writer picks them up
     // ---------------------------------------------------------------- //
-    reg pend_status, pend_detect, pend_noecho, pend_busy;
+    reg pend_status, pend_detect, pend_noecho, pend_busy, pend_config;
     reg [11:0] det_window;
     reg [5:0]  det_angle;
 
@@ -132,17 +157,19 @@ module measurement_controller #(
     localparam MSG_DETECT = 3'd2;
     localparam MSG_NOECHO = 3'd3;
     localparam MSG_BUSY   = 3'd4;
+    localparam MSG_CONFIG = 3'd5;
 
     reg [2:0] msg_kind;
-    reg [2:0] msg_idx;
+    reg [3:0] msg_idx;
 
     wire msg_idle = (msg_kind == MSG_NONE);
 
-    // Priority when several are pending: busy > status > detect > noecho
+    // Priority when several are pending: busy > config > status > detect > noecho
     wire msg_take_busy   = msg_idle & pend_busy;
-    wire msg_take_status = msg_idle & ~pend_busy & pend_status;
-    wire msg_take_detect = msg_idle & ~pend_busy & ~pend_status & pend_detect;
-    wire msg_take_noecho = msg_idle & ~pend_busy & ~pend_status & ~pend_detect & pend_noecho;
+    wire msg_take_config = msg_idle & ~pend_busy & pend_config;
+    wire msg_take_status = msg_idle & ~pend_busy & ~pend_config & pend_status;
+    wire msg_take_detect = msg_idle & ~pend_busy & ~pend_config & ~pend_status & pend_detect;
+    wire msg_take_noecho = msg_idle & ~pend_busy & ~pend_config & ~pend_status & ~pend_detect & pend_noecho;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -161,6 +188,14 @@ module measurement_controller #(
             pend_busy    <= 1'b0;
             det_window   <= 12'd0;
             det_angle    <= 6'd0;
+            pend_config  <= 1'b0;
+            cfg_phase    <= 2'd0;
+            cfg_addr     <= 3'd0;
+            cfg_hi       <= 4'd0;
+            cfg_threshold  <= 8'd7;
+            cfg_min_width  <= 8'd5;
+            cfg_blank      <= 8'd64;
+            cfg_halfcycles <= 5'd16;
         end
         else begin
             start_pulse <= 1'b0;
@@ -172,6 +207,27 @@ module measurement_controller #(
             if (cmd_auto_off) uart_auto <= 1'b0;
             if (cmd_auto_on | cmd_auto_off | cmd_query)
                 pend_status <= 1'b1;
+            if (cmd_dump) pend_config <= 1'b1;
+
+            // --- "Cnvv": collect the register index and the two hex digits ---
+            if (cmd_config) cfg_phase <= 2'd1;
+            else if (rx_valid && cfg_phase != 2'd0) begin
+                if (!rx_is_hex) cfg_phase <= 2'd0;      // give up on a bad digit
+                else case (cfg_phase)
+                    2'd1: begin cfg_addr <= rx_nib[2:0]; cfg_phase <= 2'd2; end
+                    2'd2: begin cfg_hi   <= rx_nib;      cfg_phase <= 2'd3; end
+                    default: begin
+                        case (cfg_addr)
+                            3'd0: cfg_threshold <= {cfg_hi, rx_nib};
+                            3'd1: cfg_min_width <= {cfg_hi, rx_nib};
+                            3'd2: cfg_blank     <= {cfg_hi, rx_nib};
+                            default: cfg_halfcycles <= {cfg_hi[0], rx_nib};
+                        endcase
+                        cfg_phase   <= 2'd0;
+                        pend_config <= 1'b1;
+                    end
+                endcase
+            end
 
             // --- timers ---
             if (tick_4mhz) begin
@@ -227,6 +283,7 @@ module measurement_controller #(
             if (msg_take_detect) pend_detect <= 1'b0;
             if (msg_take_noecho) pend_noecho <= 1'b0;
             if (msg_take_busy)   pend_busy   <= 1'b0;
+            if (msg_take_config) pend_config <= 1'b0;
         end
     end
 
@@ -245,45 +302,65 @@ module measurement_controller #(
     reg [11:0] msg_window;
     reg [5:0]  msg_angle;
 
-    reg [7:0] msg_byte;
+    // One hex converter shared by every message: the case below picks either a
+    // literal character or the nibble to print.
+    reg [7:0] msg_lit;
+    reg [3:0] msg_nib;
+    reg       msg_hex;
 
     always @(*) begin
-        msg_byte = 8'h0A;
+        msg_lit = 8'h0A;
+        msg_nib = 4'd0;
+        msg_hex = 1'b0;
         case (msg_kind)
-            MSG_STATUS: begin
+            MSG_STATUS:
                 case (msg_idx)
-                    3'd0:    msg_byte = auto_mode ? "A" : "S";
-                    3'd1:    msg_byte = mic_ready ? "R" : "W";
-                    default: msg_byte = 8'h0A;
+                    4'd0: msg_lit = auto_mode ? "A" : "S";
+                    4'd1: msg_lit = mic_ready ? "R" : "W";
+                    default: ;
                 endcase
-            end
-            MSG_DETECT: begin
+            MSG_DETECT:
                 case (msg_idx)
-                    3'd0:    msg_byte = "D";
-                    3'd1:    msg_byte = hex(msg_window[11:8]);
-                    3'd2:    msg_byte = hex(msg_window[7:4]);
-                    3'd3:    msg_byte = hex(msg_window[3:0]);
-                    3'd4:    msg_byte = " ";
-                    3'd5:    msg_byte = hex({2'b00, msg_angle[5:4]});
-                    3'd6:    msg_byte = hex(msg_angle[3:0]);
-                    default: msg_byte = 8'h0A;
+                    4'd0: msg_lit = "D";
+                    4'd1: begin msg_hex = 1'b1; msg_nib = msg_window[11:8]; end
+                    4'd2: begin msg_hex = 1'b1; msg_nib = msg_window[7:4];  end
+                    4'd3: begin msg_hex = 1'b1; msg_nib = msg_window[3:0];  end
+                    4'd4: msg_lit = " ";
+                    4'd5: begin msg_hex = 1'b1; msg_nib = {2'b00, msg_angle[5:4]}; end
+                    4'd6: begin msg_hex = 1'b1; msg_nib = msg_angle[3:0];   end
+                    default: ;
                 endcase
-            end
-            MSG_NOECHO: msg_byte = (msg_idx == 3'd0) ? "N" : 8'h0A;
-            MSG_BUSY:   msg_byte = (msg_idx == 3'd0) ? "B" : 8'h0A;
-            default:    msg_byte = 8'h0A;
+            MSG_CONFIG:
+                case (msg_idx)
+                    4'd0: msg_lit = "V";
+                    4'd1: begin msg_hex = 1'b1; msg_nib = cfg_threshold[7:4]; end
+                    4'd2: begin msg_hex = 1'b1; msg_nib = cfg_threshold[3:0]; end
+                    4'd3: begin msg_hex = 1'b1; msg_nib = cfg_min_width[7:4]; end
+                    4'd4: begin msg_hex = 1'b1; msg_nib = cfg_min_width[3:0]; end
+                    4'd5: begin msg_hex = 1'b1; msg_nib = cfg_blank[7:4];     end
+                    4'd6: begin msg_hex = 1'b1; msg_nib = cfg_blank[3:0];     end
+                    4'd7: begin msg_hex = 1'b1; msg_nib = {3'b000, cfg_halfcycles[4]}; end
+                    4'd8: begin msg_hex = 1'b1; msg_nib = cfg_halfcycles[3:0]; end
+                    default: ;
+                endcase
+            MSG_NOECHO: if (msg_idx == 4'd0) msg_lit = "N";
+            MSG_BUSY:   if (msg_idx == 4'd0) msg_lit = "B";
+            default: ;
         endcase
     end
 
+    wire [7:0] msg_byte = msg_hex ? hex(msg_nib) : msg_lit;
+
     // Last byte index of the current message (length - 1)
-    wire [2:0] msg_len_last = (msg_kind == MSG_STATUS) ? 3'd2 :
-                              (msg_kind == MSG_DETECT) ? 3'd7 :
-                              3'd1;   // NOECHO and BUSY are "X\n"
+    wire [3:0] msg_len_last = (msg_kind == MSG_STATUS) ? 4'd2  :
+                              (msg_kind == MSG_DETECT) ? 4'd7  :
+                              (msg_kind == MSG_CONFIG) ? 4'd9  :
+                              4'd1;   // NOECHO and BUSY are "X\n"
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             msg_kind   <= MSG_NONE;
-            msg_idx    <= 3'd0;
+            msg_idx    <= 4'd0;
             tx_push    <= 1'b0;
             tx_data    <= 8'd0;
             msg_window <= 12'd0;
@@ -293,10 +370,11 @@ module measurement_controller #(
             tx_push <= 1'b0;
 
             if (msg_idle) begin
-                msg_idx    <= 3'd0;
+                msg_idx    <= 4'd0;
                 msg_window <= det_window;
                 msg_angle  <= det_angle;
                 if      (msg_take_busy)   msg_kind <= MSG_BUSY;
+                else if (msg_take_config) msg_kind <= MSG_CONFIG;
                 else if (msg_take_status) msg_kind <= MSG_STATUS;
                 else if (msg_take_detect) msg_kind <= MSG_DETECT;
                 else if (msg_take_noecho) msg_kind <= MSG_NOECHO;

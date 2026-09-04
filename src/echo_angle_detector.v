@@ -6,15 +6,15 @@ module echo_angle_detector (
     input wire mic1_pdm,
     input wire mic2_pdm,
 
+    input wire [7:0]  cfg_threshold,   // |I|+|Q| gate, per mic
+    input wire [7:0]  cfg_min_width,   // minimum echo length in windows
+    input wire [7:0]  cfg_blank,       // windows ignored while the transducer rings down
+
     output reg [5:0] angle_out, // from your phase_difference_to_angle table
     output reg angle_valid, // pulse when angle_out is fresh
     output reg [11:0] echo_window, // center window of detected echo
     output reg echo_found
 );
-
-    localparam THRESHOLD = 9'd7; // |I|+|Q| threshold
-    localparam MIN_WIDTH = 4'd5; // minimum echo length
-    localparam BLANK = 7'd64; // first BLANK ignored windows (direct transmitter -> mic filter)
 
     localparam IDLE = 3'd0;
     localparam ACCUM = 3'd1;
@@ -136,8 +136,8 @@ module echo_angle_detector (
                 IDLE: ;   // waits for start_measurement, handled above
                 ACCUM: begin // acummulate I/Q over multiple windows
                     if (iq1_valid && iq2_valid && tick_4mhz) begin
-                        if (sig1 >= THRESHOLD && sig2 >= THRESHOLD // past first gate AND both signals above threshold -> accumulate
-                            && window_counter >= {{5{1'b0}}, BLANK}) begin
+                        if (sig1 >= {1'b0, cfg_threshold} && sig2 >= {1'b0, cfg_threshold}
+                            && window_counter >= {4'd0, cfg_blank}) begin
 
                             if (accum_cnt == 12'd0) begin
                                 echo_start <= window_counter;
@@ -150,7 +150,7 @@ module echo_angle_detector (
 
                             accum_cnt <= accum_cnt + 1;
                         end
-                        else if (accum_cnt >= {{8{1'b0}}, MIN_WIDTH}) begin // proceed to the next state if window is long enough AND threshold isn't crossed anymore
+                        else if (accum_cnt >= {4'd0, cfg_min_width}) begin // echo long enough and now below threshold -> measure it
                             // phase = atan2(I, Q): the correlator's I carries
                             // sin(phase) and Q carries cos(phase).
                             cordic_x <= acc_Q1;

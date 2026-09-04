@@ -34,6 +34,11 @@ module main #(
     wire start_pulse;
     wire angle_valid;
 
+    wire [7:0]  cfg_threshold;
+    wire [7:0]  cfg_min_width;
+    wire [7:0]  cfg_blank;
+    wire [4:0]  cfg_halfcycles;
+
     // The mic data and the restart pin are asynchronous to clk; uart_rx and the
     // two control pins are synchronised inside their own modules.
     reg [1:0] mic1_s, mic2_s, restart_s;
@@ -125,6 +130,10 @@ module main #(
         .tx_fifo_full (fifo_full),
         .tx_data      (fifo_wr_data),
         .tx_push      (fifo_wr_en),
+        .cfg_threshold  (cfg_threshold),
+        .cfg_min_width  (cfg_min_width),
+        .cfg_blank      (cfg_blank),
+        .cfg_halfcycles (cfg_halfcycles),
         .start_pulse  (start_pulse),
         .auto_mode    (auto_mode),
         .busy         (busy),
@@ -141,6 +150,9 @@ module main #(
         .start_measurement (start_pulse),
         .mic1_pdm          (mic1_in),
         .mic2_pdm          (mic2_in),
+        .cfg_threshold     (cfg_threshold),
+        .cfg_min_width     (cfg_min_width),
+        .cfg_blank         (cfg_blank),
         .angle_out         (angle_out_horizontal),
         .angle_valid       (angle_valid),
         .echo_window       (echo_window_index),
@@ -152,6 +164,7 @@ module main #(
         .tick_4mhz         (tick_4mhz),
         .rst_n             (rst_n),
         .start_measurement (start_pulse),
+        .cfg_halfcycles    (cfg_halfcycles),
         .drive_a           (transducer_drive_a),
         .drive_b           (transducer_drive_b)
     );

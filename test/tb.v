@@ -136,6 +136,18 @@ module tb ();
             .tick_4mhz(tick_4mhz)
         );
 
+        // Defaults, matching the controller's reset values. A test can drive
+        // these directly to check a different tuning.
+        reg [7:0] ead_threshold;
+        reg [7:0] ead_min_width;
+        reg [7:0] ead_blank;
+
+        initial begin
+            ead_threshold = 8'd7;
+            ead_min_width = 8'd5;
+            ead_blank     = 8'd64;
+        end
+
         echo_angle_detector echo_angle_detector_test (
             .clk(clk),
             .rst_n(rst_n),
@@ -143,6 +155,9 @@ module tb ();
             .start_measurement(start_measurement_ead),
             .mic1_pdm(mic1_pdm_t),
             .mic2_pdm(mic2_pdm_t),
+            .cfg_threshold(ead_threshold),
+            .cfg_min_width(ead_min_width),
+            .cfg_blank(ead_blank),
             .angle_out(angle_out_ead),
             .angle_valid(angle_valid_ead),
             .echo_window(echo_window_ead),

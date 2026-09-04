@@ -42,6 +42,8 @@ The chip drives a 40kHz ultrasonic transducer (drive_a/drive_b) for a short burs
 - S: disable auto measurement
 - P: single ping
 - ?: query status
+- V: report the tuning registers
+- Cnvv: write tuning register `n` with hex value `vv` (see Tuning below)
 
 #### Status response
 - 3 characters
@@ -56,6 +58,9 @@ The chip drives a 40kHz ultrasonic transducer (drive_a/drive_b) for a short burs
 - N\n
 #### Ping refused
 - B\n
+#### Tuning registers
+- Vttmmbbpp\n
+    - tt: threshold, mm: min_width, bb: blank, pp: ping half periods
 
 ## Interpreting the output
 
@@ -63,7 +68,7 @@ The chip drives a 40kHz ultrasonic transducer (drive_a/drive_b) for a short burs
 The window index can be used to calculate the distance to the target using the following formula:
 distance \[m\] = $\text{window\_index} \cdot 100 / 4\,000\,000 \cdot 343 / 2$
 
-Valid range: the first 64 windows after a ping are blanked while the transducer rings down, so the minimum range is about 0.27 m. The counter is 12 bits, giving a maximum of 4095 windows or about 17 m.
+Valid range: the first `blank` windows after a ping are ignored while the transducer rings down (64 by default, so about 0.27 m; tunable, see below). The counter is 12 bits, giving a maximum of 4095 windows or about 17 m.
 
 ### Output angles
 The angle is a wrapped signed value in steps of `360 / 2^6` = 5.625 degrees. Codes 0–31 are 0 to +174 degrees, codes 32–63 are −180 to −5.6 degrees:
@@ -74,11 +79,34 @@ Positive is the side where mic2 hears the echo *before* mic1. The conversion ass
 
 With `single_mic` high there is no second microphone to compare against, so the angle field always reads 0 and only the range is meaningful.
 
+## Tuning
+
+The four numbers that decide whether an echo is detected at all are registers,
+not constants, because the right values depend on the microphone gain and on
+how long your transducer rings down. Write them over UART with `Cnvv` (three
+hex characters after the `C`) and read them back with `V`. They keep their
+value until `rst_n`, which restores the defaults.
+
+| n | register | default | meaning |
+|---|---|---|---|
+| 0 | threshold | `07` | \|I\|+\|Q\| a window must reach, on *both* mics |
+| 1 | min_width | `05` | consecutive windows above threshold before it counts as an echo |
+| 2 | blank | `40` (64) | windows ignored after the ping, while the transducer rings down |
+| 3 | ping | `10` (16) | half periods in the burst, so 16 = 8 full cycles at 40 kHz |
+
+Examples: `C00C` raises the threshold to 12 if noise is triggering detections,
+`C060` blanks 96 windows (0.41 m) if the ringdown is being reported as a target,
+`C308` shortens the burst to 4 cycles, which shortens the ringdown and lets you
+see closer objects at the cost of range.
+
+A threshold of 0 or a blank near 4095 will stop the chip detecting anything;
+pull `rst_n` low to get the defaults back.
+
 ## External hardware
 
 Custom PCB with microphones and a transducer. The design used for testing is available at https://github.com/milllep/TinyTapeout-PCB.
 
 ## Notes
-- The design requires a clock of exactly 40 MHz; every divider ratio is fixed in the RTL.
+- Every ratio in the design is fixed relative to the clock, so a clock other than 40 MHz scales everything together: the drive frequency, the window length (and therefore the distance formula), the mic clock and the UART baud rate (clk / 347). Running the chip slower is a practical way to bring it up with a bit-banged UART.
 - A ping is refused (`B`) until the mic is ready and until 400 ms have passed since the previous ping, so the transducer's reservoir capacitor can recharge. Auto mode pings once per second.
 - `echo_window_index` counts from 1, so the reported distance is one window (4.3 mm) long.
