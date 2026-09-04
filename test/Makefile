@@ -15,7 +15,23 @@ FST             ?= -fst # Use more efficient FST format
 TOPLEVEL_LANG   ?= verilog
 SRC_DIR          = $(PWD)/../src
 
-PROJECT_SOURCES  = project.v main.v echo_timing.v hardware_controller.v angle_estimation.v
+PROJECT_SOURCES = \
+    project.v \
+    main.v \
+    data_mux.v \
+    clk_div_10.v \
+    ref_sig.v \
+    correlator.v \
+    windowed_iq_demodulator.v \
+    echo_angle_detector.v \
+    transducer_ping_generator.v \
+    mic_clock_sequence.v \
+    atan2_cordic_16b.v \
+    phase_difference_to_angle.v \
+    uart_tx.v \
+    uart_rx.v \
+    byte_fifo.v \
+    measurement_controller.v
 
 ifneq ($(GATES),yes)
 
@@ -41,17 +57,41 @@ VERILOG_SOURCES += $(PWD)/gate_level_netlist.v
 
 endif
 
+# uart_test would take ~25 min with the real 1 s auto period and 400 ms
+# lockout; shorten both for simulation. uart_test.py's AUTO_MS / LOCKOUT_MS
+# must match these (30 ms / 20 ms).
+ifneq ($(GATES),yes)
+COMPILE_ARGS    += -Ptb.user_project.main_inst.AUTO_PERIOD_TICKS=120000
+COMPILE_ARGS    += -Ptb.user_project.main_inst.LOCKOUT_TICKS=80000
+endif
+
 # Include the testbench sources:
 VERILOG_SOURCES += $(PWD)/tb.v
 TOPLEVEL         = tb
 
-# List test modules to run, separated by commas and without the .py suffix:
-# COCOTB_TEST_MODULES = atan2_cordic,tb_echo_timing,mic_us_power_sequence # WARNING: mic_us_power sequence is a long test (keep it in the back)
+# ==============================================================================
+# Test modules to run, separated by commas and without the .py suffix.
+#
+# WARNING: mic_us_power_sequence simulates the full 110 ms power-up sequence.
+#          It takes ~3 minutes, so keep it last.
+#
+# Removed and why:
+#   phase_difference_calculator - module no longer in src/ (not instantiated
+#                                 by main.v; echo_angle_detector sequences the
+#                                 CORDIC itself)
+#   tb_echo_timing              - tested first_echo_timing, which the chip no
+#                                 longer uses. main.v uses echo_angle_detector,
+#                                 which needs BOTH mics; that test only drives
+#                                 ui_in[1] so sig2 never crosses the threshold.
+# ==============================================================================
 
 ifeq ($(GATES),yes)
-COCOTB_TEST_MODULES = tb_echo_timing,mic_us_power_sequence # only tests that apply to the complete design
+# Pin-only tests: everything else reaches into the RTL hierarchy, which the
+# gate-level netlist does not have.
+COCOTB_TEST_MODULES = chip_pins_test,mic_us_power_sequence
 else
-COCOTB_TEST_MODULES = atan2_cordic,tb_echo_timing,mic_us_power_sequence # modules that are tested separately can be added here
+# Modules tested separately can be added here as well:
+COCOTB_TEST_MODULES = angle_module_test,atan2_cordic,config_test,chip_pins_test,uart_test,mic_us_power_sequence
 endif
 
 # Include cocotb's make rules to take care of the simulator setup

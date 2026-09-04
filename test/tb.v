@@ -25,6 +25,11 @@ module tb ();
     wire transducer_drive_b = uio_out[6];
     wire mic_clk = uio_out[7];
 
+    // Edge counter for the mic clock, so cocotb can read a frequency once
+    // per ms instead of waking Python on every 40 MHz clock edge.
+    reg [31:0] mic_clk_edges = 32'd0;
+    always @(posedge mic_clk) mic_clk_edges <= mic_clk_edges + 1;
+
     wire start_measurement = ui_in[0];
     wire mic1_pdm = ui_in[1];
     wire restart_mic = ui_in[7];
@@ -64,33 +69,101 @@ module tb ();
     );
 
     `ifndef GL_TEST
+        // DEBUG
+        always @(posedge clk) if (user_project.main_inst.controller.ext_rise)
+            $display("DBG %0t ext_rise: can=%b lockout_ok=%b mic_ready=%b since=%0d req=%b do=%b auto_fire=%b cmd=%b",
+                $time, user_project.main_inst.controller.can_ping, user_project.main_inst.controller.lockout_ok,
+                user_project.main_inst.controller.mic_ready, user_project.main_inst.controller.since_ping,
+                user_project.main_inst.controller.ping_req, user_project.main_inst.controller.do_ping,
+                user_project.main_inst.controller.auto_fire, user_project.main_inst.controller.cmd_ping);
+        always @(posedge clk) if (user_project.main_inst.controller.start_pulse) $display("DBG %0t START_PULSE", $time);
 
-        wire signed [7:0] atan2_x_in;
-        wire signed [7:0] atan2_y_in;
-        wire atan2_load_input;
+        // Shorten the controller timers for RTL simulation. The real
+        // values (1 s / 400 ms / 102.4 ms) would make every test take
+        // minutes. Icarus -P cannot reach nested instances, so defparam.
+        // tick_4mhz units: 4000 = 1 ms.
+        defparam user_project.main_inst.AUTO_PERIOD_TICKS = 22'd120000;  // 30 ms
+        defparam user_project.main_inst.LOCKOUT_TICKS     = 22'd80000;   // 20 ms
+        defparam user_project.main_inst.MEAS_TICKS        = 22'd60000;   // 15 ms
 
-        wire atan2_angle_valid;
-        wire signed [11:0] atan2_angle_out;
+        // ------------------------------------------------------------------
+        // Anything cocotb WRITES to must be a reg. A wire with no Verilog
+        // driver stays at X no matter what the Python assigns to it.
+        // ------------------------------------------------------------------
 
+        reg signed [15:0] atan2_x_in_16;
+        reg signed [15:0] atan2_y_in_16;
+        reg               atan2_load_input_16;
 
-        atan2_cordic cordic_testing (
-            `ifdef GL_TEST
-                .VPWR(VPWR),
-                .VGND(VGND),
-            `endif
+        wire              atan2_angle_valid_16;
+        wire       [11:0] atan2_angle_out_16;
 
+        initial begin
+            atan2_x_in_16       = 16'sd0;
+            atan2_y_in_16       = 16'sd0;
+            atan2_load_input_16 = 1'b0;
+        end
+
+        atan2_cordic_16b cordic_testing_16 (
             .clk(clk),
             .rst_n(rst_n),
-            .x_in(atan2_x_in),
-            .y_in(atan2_y_in),
-            .load_input(atan2_load_input),
-            .angle_valid(atan2_angle_valid),
-            .angle_out(atan2_angle_out)
+            .x_in(atan2_x_in_16),
+            .y_in(atan2_y_in_16),
+            .load_input(atan2_load_input_16),
+            .angle_valid(atan2_angle_valid_16),
+            .angle_out(atan2_angle_out_16)
+        );
+
+        reg        start_measurement_ead;
+        reg        mic1_pdm_t;
+        reg        mic2_pdm_t;
+
+        wire       tick_4mhz;
+        wire [5:0] angle_out_ead;
+        wire       angle_valid_ead;
+        wire [11:0] echo_window_ead;
+        wire       echo_found_ead;
+
+        initial begin
+            start_measurement_ead = 1'b0;
+            mic1_pdm_t            = 1'b0;
+            mic2_pdm_t            = 1'b0;
+        end
+
+        clk_div_10 clock_4mhz_module (
+            .clk(clk),
+            .rst_n(rst_n),
+            .tick_4mhz(tick_4mhz)
+        );
+
+        // Defaults, matching the controller's reset values. A test can drive
+        // these directly to check a different tuning.
+        reg [7:0] ead_threshold;
+        reg [7:0] ead_min_width;
+        reg [7:0] ead_blank;
+
+        initial begin
+            ead_threshold = 8'd7;
+            ead_min_width = 8'd5;
+            ead_blank     = 8'd64;
+        end
+
+        echo_angle_detector echo_angle_detector_test (
+            .clk(clk),
+            .rst_n(rst_n),
+            .tick_4mhz(tick_4mhz),
+            .start_measurement(start_measurement_ead),
+            .mic1_pdm(mic1_pdm_t),
+            .mic2_pdm(mic2_pdm_t),
+            .cfg_threshold(ead_threshold),
+            .cfg_min_width(ead_min_width),
+            .cfg_blank(ead_blank),
+            .angle_out(angle_out_ead),
+            .angle_valid(angle_valid_ead),
+            .echo_window(echo_window_ead),
+            .echo_found(echo_found_ead)
         );
 
     `endif
 
 endmodule
-
-
-

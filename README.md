@@ -1,42 +1,41 @@
 ![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg) ![](../../workflows/fpga/badge.svg)
 
-# Tiny Tapeout Verilog Project Template
+# SiliconSonics - ultrasonic sonar: range and bearing
 
-- [Read the documentation for project](docs/info.md)
+A Tiny Tapeout digital sonar processor. It drives a 40 kHz ultrasonic
+transducer, demodulates the returning echo from two PDM microphones with
+square-wave I/Q correlators, and reports the echo's distance and bearing on
+parallel pins and over a 115200 baud UART.
 
-## What is Tiny Tapeout?
+- **Range** from the echo's window index, 0.27 m to about 17 m in 4.3 mm steps.
+- **Bearing** from the phase difference between the two microphones, in 5.625
+  degree steps. Boards with only one microphone set `single_mic` and get range
+  only.
+- **Tunable**: the threshold, minimum echo width, blanking window and burst
+  length are UART-writable registers, not fixed constants.
+- Single-shot, pin-triggered or once-per-second automatic measurement.
 
-Tiny Tapeout is an educational project that aims to make it easier and cheaper than ever to get your digital and analog designs manufactured on a real chip.
+See [docs/info.md](docs/info.md) for the pinout, the UART protocol and the
+tuning registers.
 
-To learn more and get started, visit https://tinytapeout.com.
+## External hardware
 
-## Set up your Verilog project
+Custom PCB with the microphones and the transducer:
+https://github.com/milllep/TinyTapeout-PCB
 
-1. Add your Verilog files to the `src` folder.
-2. Edit the [info.yaml](info.yaml) and update information about your project, paying special attention to the `source_files` and `top_module` properties. If you are upgrading an existing Tiny Tapeout project, check out our [online info.yaml migration tool](https://tinytapeout.github.io/tt-yaml-upgrade-tool/).
-3. Edit [docs/info.md](docs/info.md) and add a description of your project.
-4. Adapt the testbench to your design. See [test/README.md](test/README.md) for more information.
+## Building and testing
 
-The GitHub action will automatically build the ASIC files using [LibreLane](https://www.zerotoasiccourse.com/terminology/librelane/).
+```sh
+cd test
+make                # RTL simulation
+make GATES=yes      # gate-level, after copying in gate_level_netlist.v
+```
 
-## Enable GitHub actions to build the results page
-
-- [Enabling GitHub Pages](https://tinytapeout.com/faq/#my-github-action-is-failing-on-the-pages-part)
+The GitHub actions build the GDS with LibreLane, run the testbench and publish
+the datasheet.
 
 ## Resources
 
-- [FAQ](https://tinytapeout.com/faq/)
+- [Tiny Tapeout FAQ](https://tinytapeout.com/faq/)
 - [Digital design lessons](https://tinytapeout.com/digital_design/)
-- [Learn how semiconductors work](https://tinytapeout.com/siliwiz/)
 - [Join the community](https://tinytapeout.com/discord)
-- [Build your design locally](https://www.tinytapeout.com/guides/local-hardening/)
-
-## What next?
-
-- [Submit your design to the next shuttle](https://app.tinytapeout.com/).
-- Edit [this README](README.md) and explain your design, how it works, and how to test it.
-- Share your project on your social network of choice:
-  - LinkedIn [#tinytapeout](https://www.linkedin.com/search/results/content/?keywords=%23tinytapeout) [@TinyTapeout](https://www.linkedin.com/company/100708654/)
-  - Mastodon [#tinytapeout](https://chaos.social/tags/tinytapeout) [@matthewvenn](https://chaos.social/@matthewvenn)
-  - X (formerly Twitter) [#tinytapeout](https://twitter.com/hashtag/tinytapeout) [@tinytapeout](https://twitter.com/tinytapeout)
-  - Bluesky [@tinytapeout.com](https://bsky.app/profile/tinytapeout.com)

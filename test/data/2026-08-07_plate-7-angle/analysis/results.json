@@ -1,0 +1,290 @@
+{
+  "params": {
+    "decim": 32,
+    "fdrive": 40000,
+    "guard_s": 0.002
+  },
+  "truth_ranges_m": [],
+  "captures": [
+    {
+      "file": "raw/capture_000.pdm",
+      "n_bytes": 524288,
+      "detections": [
+        {
+          "range_m": 1.318492,
+          "time_s": 0.007688,
+          "index": 961
+        },
+        {
+          "range_m": 4.028192,
+          "time_s": 0.023488,
+          "index": 2936
+        }
+      ],
+      "duplicate_channels": {},
+      "mics_used": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "objects": [
+        {
+          "range_m": 1.3219719999999935,
+          "azimuth_deg": -24.0,
+          "time_s": 0.007688,
+          "power": 0.08322968922781782
+        },
+        {
+          "range_m": 4.028927999999993,
+          "azimuth_deg": 0.0,
+          "time_s": 0.023488,
+          "power": 0.0018089531260078232
+        }
+      ]
+    },
+    {
+      "file": "raw/capture_001.pdm",
+      "n_bytes": 524288,
+      "detections": [
+        {
+          "range_m": 1.318492,
+          "time_s": 0.007688,
+          "index": 961
+        },
+        {
+          "range_m": 4.028192,
+          "time_s": 0.023488,
+          "index": 2936
+        }
+      ],
+      "duplicate_channels": {},
+      "mics_used": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "objects": [
+        {
+          "range_m": 1.3219719999999935,
+          "azimuth_deg": -24.0,
+          "time_s": 0.007688,
+          "power": 0.08337069598236663
+        },
+        {
+          "range_m": 4.028927999999993,
+          "azimuth_deg": 0.0,
+          "time_s": 0.023488,
+          "power": 0.0017642750770853132
+        }
+      ]
+    },
+    {
+      "file": "raw/capture_002.pdm",
+      "n_bytes": 524288,
+      "detections": [
+        {
+          "range_m": 1.318492,
+          "time_s": 0.007688,
+          "index": 961
+        },
+        {
+          "range_m": 4.028192,
+          "time_s": 0.023488,
+          "index": 2936
+        }
+      ],
+      "duplicate_channels": {},
+      "mics_used": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "objects": [
+        {
+          "range_m": 1.3219719999999935,
+          "azimuth_deg": -24.0,
+          "time_s": 0.007688,
+          "power": 0.08349239638796283
+        },
+        {
+          "range_m": 4.028927999999993,
+          "azimuth_deg": 0.0,
+          "time_s": 0.023488,
+          "power": 0.0017792984789355597
+        }
+      ]
+    },
+    {
+      "file": "raw/capture_003.pdm",
+      "n_bytes": 524288,
+      "detections": [
+        {
+          "range_m": 1.318492,
+          "time_s": 0.007688,
+          "index": 961
+        },
+        {
+          "range_m": 4.028192,
+          "time_s": 0.023488,
+          "index": 2936
+        }
+      ],
+      "duplicate_channels": {},
+      "mics_used": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "objects": [
+        {
+          "range_m": 1.3219719999999935,
+          "azimuth_deg": -24.0,
+          "time_s": 0.007688,
+          "power": 0.08338736349408069
+        },
+        {
+          "range_m": 4.028927999999993,
+          "azimuth_deg": 0.0,
+          "time_s": 0.023488,
+          "power": 0.0018687708459537396
+        }
+      ]
+    },
+    {
+      "file": "raw/capture_004.pdm",
+      "n_bytes": 524288,
+      "detections": [
+        {
+          "range_m": 1.318492,
+          "time_s": 0.007688,
+          "index": 961
+        },
+        {
+          "range_m": 4.028192,
+          "time_s": 0.023488,
+          "index": 2936
+        }
+      ],
+      "duplicate_channels": {},
+      "mics_used": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "objects": [
+        {
+          "range_m": 1.3219719999999935,
+          "azimuth_deg": -24.0,
+          "time_s": 0.007688,
+          "power": 0.0837675189548586
+        },
+        {
+          "range_m": 4.028927999999993,
+          "azimuth_deg": 0.0,
+          "time_s": 0.023488,
+          "power": 0.0019123246135830732
+        }
+      ]
+    },
+    {
+      "file": "raw/capture_005.pdm",
+      "n_bytes": 524288,
+      "detections": [
+        {
+          "range_m": 1.315748,
+          "time_s": 0.007672,
+          "index": 959
+        },
+        {
+          "range_m": 4.024076,
+          "time_s": 0.023464,
+          "index": 2933
+        }
+      ],
+      "duplicate_channels": {},
+      "mics_used": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "objects": [
+        {
+          "range_m": 1.3205999999999936,
+          "azimuth_deg": -30.0,
+          "time_s": 0.007672,
+          "power": 0.025616449055264882
+        },
+        {
+          "range_m": 4.024811999999994,
+          "azimuth_deg": -7.0,
+          "time_s": 0.023464,
+          "power": 0.0020725993395503237
+        }
+      ]
+    },
+    {
+      "file": "raw/capture_006.pdm",
+      "n_bytes": 524288,
+      "detections": [
+        {
+          "range_m": 1.315748,
+          "time_s": 0.007672,
+          "index": 959
+        },
+        {
+          "range_m": 4.024076,
+          "time_s": 0.023464,
+          "index": 2933
+        }
+      ],
+      "duplicate_channels": {},
+      "mics_used": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "objects": [
+        {
+          "range_m": 1.3205999999999936,
+          "azimuth_deg": -30.0,
+          "time_s": 0.007672,
+          "power": 0.02580125766943138
+        },
+        {
+          "range_m": 4.024811999999994,
+          "azimuth_deg": -7.0,
+          "time_s": 0.023464,
+          "power": 0.002031356673855646
+        }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,3 @@
-// WARNING: sends one impulse on startup
-
 // Sends signals to drive_a and drive_b to generate an 8-period 40kHz ping
 // deadtime: 2 cycles @ 4MHz == 500ns 
 module transducer_ping_generator (
