@@ -1,6 +1,7 @@
-// 16-entry byte FIFO. Buffers outgoing UART bytes so the message writer
-// can push a whole frame in a few clocks and the transmitter drains it at
-// baud rate.
+// 8-entry byte FIFO. Buffers outgoing UART bytes so the message writer can
+// push most of a frame in a few clocks and the transmitter drains it at baud
+// rate. The writer stalls on full, so depth only affects how long it holds a
+// message, never its content.
 //
 // rd_data always shows the oldest byte (combinational); assert rd_en for
 // one clock to pop it. Writes when full and reads when empty are ignored.
@@ -14,13 +15,13 @@ module byte_fifo (
     output wire       full,
     output wire       empty
 );
-    reg [7:0] mem [0:15];
-    reg [3:0] wr_ptr;
-    reg [3:0] rd_ptr;
-    reg [4:0] count;
+    reg [7:0] mem [0:7];
+    reg [2:0] wr_ptr;
+    reg [2:0] rd_ptr;
+    reg [3:0] count;
 
-    assign full    = (count == 5'd16);
-    assign empty   = (count == 5'd0);
+    assign full    = (count == 4'd8);
+    assign empty   = (count == 4'd0);
     assign rd_data = mem[rd_ptr];
 
     wire do_wr = wr_en & ~full;
@@ -28,9 +29,9 @@ module byte_fifo (
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            wr_ptr <= 4'd0;
-            rd_ptr <= 4'd0;
-            count  <= 5'd0;
+            wr_ptr <= 3'd0;
+            rd_ptr <= 3'd0;
+            count  <= 4'd0;
         end
         else begin
             if (do_wr) begin

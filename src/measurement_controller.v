@@ -379,7 +379,9 @@ module measurement_controller #(
                 else if (msg_take_detect) msg_kind <= MSG_DETECT;
                 else if (msg_take_noecho) msg_kind <= MSG_NOECHO;
             end
-            else if (!tx_fifo_full) begin
+            // tx_push is registered, so only decide when no push is in flight;
+            // otherwise two decisions can share one free slot and a byte is lost.
+            else if (!tx_fifo_full && !tx_push) begin
                 tx_push <= 1'b1;
                 tx_data <= msg_byte;
                 if (msg_idx == msg_len_last)
