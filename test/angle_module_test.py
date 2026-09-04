@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import cocotb
@@ -75,8 +76,9 @@ def expected_echoes(bits1: list[int], bits2: list[int]):
         acc_Q1 = int(np.sum(Q1[run]))
         acc_I2 = int(np.sum(I2[run]))
         acc_Q2 = int(np.sum(Q2[run]))
-        p1 = np.arctan2(acc_Q1, acc_I1)
-        p2 = np.arctan2(acc_Q2, acc_I2)
+        # phase = atan2(I, Q): I carries sin(phi), Q carries cos(phi)
+        p1 = np.arctan2(acc_I1, acc_Q1)
+        p2 = np.arctan2(acc_I2, acc_Q2)
         if p1 < 0:
             p1 += 2 * np.pi
         if p2 < 0:
@@ -268,4 +270,31 @@ async def test_echo_angle_diagnostic(dut):
     dut._log.info(
         f"PASS: all {len(expected)} echo(s) match the model "
         f"(window and angle)"
+    )
+
+    # Ground truth from the dataset manifest, not from the model. This is what
+    # catches a mirrored bearing: the model would happily agree with the RTL.
+    manifest = json.loads((data_path.parent.parent / "experiment.json").read_text())
+    truth = manifest["ground_truth"]["objects"]
+    assert truth, "manifest has no ground truth"
+    truth_deg = truth[0]["azimuth_deg"]
+    truth_m = truth[0]["range_m"]
+
+    hw = hw_results[0]
+    got_deg = hw["angle"] * 360.0 / 64.0
+    if got_deg > 180.0:
+        got_deg -= 360.0
+    got_m = hw["window"] * WINDOW_SIZE / MIC_SAMPLE_FREQUENCY * SPEED_OF_SOUND / 2
+
+    dut._log.info(
+        f"vs ground truth: {got_m:.2f} m / {got_deg:+.1f} deg "
+        f"(truth {truth_m:.2f} m / {truth_deg:+.1f} deg)"
+    )
+    # One 5.625 deg table step plus the error from the assumed 3 mm mic spacing.
+    assert abs(got_deg - truth_deg) <= 8.0, (
+        f"bearing {got_deg:+.1f} deg is not the true {truth_deg:+.1f} deg "
+        f"(a sign error shows up here as roughly -truth)"
+    )
+    assert abs(got_m - truth_m) <= 0.10, (
+        f"range {got_m:.2f} m is not the true {truth_m:.2f} m"
     )

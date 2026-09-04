@@ -114,25 +114,26 @@ module echo_angle_detector (
             cordic_x <= 16'd0;
             cordic_y <= 16'd0;
         end
+        else if (start_measurement) begin
+            acc_I1 <= 16'd0;
+            acc_Q1 <= 16'd0;
+            acc_I2 <= 16'd0;
+            acc_Q2 <= 16'd0;
+            accum_cnt <= 12'd0;
+            echo_found <= 1'b0;
+            echo_start <= 12'd0;
+            cordic_x <= 16'd0;
+            cordic_y <= 16'd0;
+            angle_valid <= 1'b0;
+            cordic_load <= 1'b0;
+            state <= ACCUM;
+        end
         else begin
             angle_valid <= 1'b0;
             cordic_load <= 1'b0;
 
             case (state)
-                IDLE: begin
-                    if (start_measurement) begin
-                        acc_I1 <= 16'd0;
-                        acc_Q1 <= 16'd0;
-                        acc_I2 <= 16'd0;
-                        acc_Q2 <= 16'd0;
-                        accum_cnt <= 12'd0;
-                        echo_found <= 1'b0;
-                        echo_start <= 12'd0;
-                        cordic_x <= 16'd0;
-                        cordic_y <= 16'd0;
-                        state <= ACCUM;
-                    end
-                end
+                IDLE: ;   // waits for start_measurement, handled above
                 ACCUM: begin // acummulate I/Q over multiple windows
                     if (iq1_valid && iq2_valid && tick_4mhz) begin
                         if (sig1 >= THRESHOLD && sig2 >= THRESHOLD // past first gate AND both signals above threshold -> accumulate
@@ -150,8 +151,10 @@ module echo_angle_detector (
                             accum_cnt <= accum_cnt + 1;
                         end
                         else if (accum_cnt >= {{8{1'b0}}, MIN_WIDTH}) begin // proceed to the next state if window is long enough AND threshold isn't crossed anymore
-                            cordic_x <= acc_I1;
-                            cordic_y <= acc_Q1;
+                            // phase = atan2(I, Q): the correlator's I carries
+                            // sin(phase) and Q carries cos(phase).
+                            cordic_x <= acc_Q1;
+                            cordic_y <= acc_I1;
                             cordic_load <= 1'b1;
                             state <= ATAN2_M1;
                         end
@@ -167,8 +170,8 @@ module echo_angle_detector (
                 ATAN2_M1: begin // find phase 1
                     if (cordic_valid && !(cordic_load)) begin
                         phase1 <= cordic_angle;
-                        cordic_x <= acc_I2;
-                        cordic_y <= acc_Q2;
+                        cordic_x <= acc_Q2;
+                        cordic_y <= acc_I2;
                         cordic_load <= 1'b1;
                         state <= ATAN2_M2;
                     end

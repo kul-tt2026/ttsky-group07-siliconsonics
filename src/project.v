@@ -8,7 +8,7 @@
 //   ui_in[3]   mux_sel             0: window index on data_out, 1: angle + status
 //   ui_in[4]   uart_rx             115200 8N1
 //   ui_in[5]   auto_enable         level; auto-measure every second while high
-//   ui_in[6]   (unused)
+//   ui_in[6]   single_mic          1: only mic1 is fitted, bearing reads 0
 //   ui_in[7]   restart_mic
 //
 //   uo_out[7:0]  data_out[7:0]
@@ -20,7 +20,8 @@
 //
 // data_out with mux_sel = 0:  echo_window_index[11:0]
 // data_out with mux_sel = 1:  [5:0]  angle
-//                             [7:6]  00
+//                             [6]    single_mic
+//                             [7]    0
 //                             [8]    result_ready  (sticky until next ping)
 //                             [9]    busy          (measurement in progress)
 //                             [10]   mic_ready
@@ -41,6 +42,7 @@ module tt_um_siliconsonics (
     wire mux_sel           = ui_in[3];
     wire uart_rx           = ui_in[4];
     wire auto_enable       = ui_in[5];
+    wire single_mic        = ui_in[6];
     wire restart_mic       = ui_in[7];
 
     wire [11:0] echo_window_index;
@@ -62,6 +64,7 @@ module tt_um_siliconsonics (
         .auto_enable          (auto_enable),
         .mic1_pdm             (mic1_pdm),
         .mic2_pdm             (mic2_pdm),
+        .single_mic           (single_mic),
         .restart_mic          (restart_mic),
         .uart_rx              (uart_rx),
         .echo_window_index    (echo_window_index),
@@ -78,7 +81,7 @@ module tt_um_siliconsonics (
 
     // Angle mode fills the otherwise-dead upper bits with status flags.
     wire [11:0] angle_and_status = {auto_mode, mic_ready, busy, result_ready,
-                                    2'b00, angle_out_horizontal};
+                                    1'b0, single_mic, angle_out_horizontal};
 
     data_mux #(
         .WIDTH(12)
@@ -98,7 +101,7 @@ module tt_um_siliconsonics (
 
     assign uio_oe[7:0]  = 8'b11111111;
 
-    wire _unused = &{ena, uio_in, ui_in[6], 1'b0};
+    wire _unused = &{ena, uio_in, 1'b0};
 
 endmodule
 

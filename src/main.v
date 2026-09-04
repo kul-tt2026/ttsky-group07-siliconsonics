@@ -12,6 +12,7 @@ module main #(
     input  wire        auto_enable,         // level, ORed with UART 'A'
     input  wire        mic1_pdm,
     input  wire        mic2_pdm,
+    input  wire        single_mic,          // level: run mic2 from mic1, bearing reads 0
     input  wire        restart_mic,
     input  wire        uart_rx,
 
@@ -33,6 +34,26 @@ module main #(
     wire start_pulse;
     wire angle_valid;
 
+    // The mic data and the restart pin are asynchronous to clk; uart_rx and the
+    // two control pins are synchronised inside their own modules.
+    reg [1:0] mic1_s, mic2_s, restart_s;
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            mic1_s    <= 2'b00;
+            mic2_s    <= 2'b00;
+            restart_s <= 2'b00;
+        end
+        else begin
+            mic1_s    <= {mic1_s[0],    mic1_pdm};
+            mic2_s    <= {mic2_s[0],    mic2_pdm};
+            restart_s <= {restart_s[0], restart_mic};
+        end
+    end
+
+    wire mic1_in = mic1_s[1];
+    wire mic2_in = single_mic ? mic1_s[1] : mic2_s[1];
+
     clk_div_10 clock_divider (
         .clk       (clk),
         .rst_n     (rst_n),
@@ -43,7 +64,7 @@ module main #(
         .clk       (clk),
         .tick_4mhz (tick_4mhz),
         .rst_n     (rst_n),
-        .restart   (restart_mic),
+        .restart   (restart_s[1]),
         .mic_clk   (mic_clk),
         .mic_ready (mic_ready)
     );
@@ -118,8 +139,8 @@ module main #(
         .rst_n             (rst_n),
         .tick_4mhz         (tick_4mhz),
         .start_measurement (start_pulse),
-        .mic1_pdm          (mic1_pdm),
-        .mic2_pdm          (mic2_pdm),
+        .mic1_pdm          (mic1_in),
+        .mic2_pdm          (mic2_in),
         .angle_out         (angle_out_horizontal),
         .angle_valid       (angle_valid),
         .echo_window       (echo_window_index),

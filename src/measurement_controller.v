@@ -127,6 +127,23 @@ module measurement_controller #(
     reg [11:0] det_window;
     reg [5:0]  det_angle;
 
+    localparam MSG_NONE   = 3'd0;
+    localparam MSG_STATUS = 3'd1;
+    localparam MSG_DETECT = 3'd2;
+    localparam MSG_NOECHO = 3'd3;
+    localparam MSG_BUSY   = 3'd4;
+
+    reg [2:0] msg_kind;
+    reg [2:0] msg_idx;
+
+    wire msg_idle = (msg_kind == MSG_NONE);
+
+    // Priority when several are pending: busy > status > detect > noecho
+    wire msg_take_busy   = msg_idle & pend_busy;
+    wire msg_take_status = msg_idle & ~pend_busy & pend_status;
+    wire msg_take_detect = msg_idle & ~pend_busy & ~pend_status & pend_detect;
+    wire msg_take_noecho = msg_idle & ~pend_busy & ~pend_status & ~pend_detect & pend_noecho;
+
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             uart_auto    <= 1'b0;
@@ -216,29 +233,17 @@ module measurement_controller #(
     // ---------------------------------------------------------------- //
     // Message writer: pushes one byte per clock into the TX FIFO
     // ---------------------------------------------------------------- //
-    localparam MSG_NONE   = 3'd0;
-    localparam MSG_STATUS = 3'd1;
-    localparam MSG_DETECT = 3'd2;
-    localparam MSG_NOECHO = 3'd3;
-    localparam MSG_BUSY   = 3'd4;
-
-    reg [2:0] msg_kind;
-    reg [2:0] msg_idx;
-
-    wire msg_idle = (msg_kind == MSG_NONE);
-
-    // Priority when several are pending: busy > status > detect > noecho
-    wire msg_take_busy   = msg_idle & pend_busy;
-    wire msg_take_status = msg_idle & ~pend_busy & pend_status;
-    wire msg_take_detect = msg_idle & ~pend_busy & ~pend_status & pend_detect;
-    wire msg_take_noecho = msg_idle & ~pend_busy & ~pend_status & ~pend_detect & pend_noecho;
-
     function [7:0] hex;
         input [3:0] n;
         begin
             hex = (n < 4'd10) ? (8'h30 + {4'd0, n}) : (8'h37 + {4'd0, n});
         end
     endfunction
+
+    // Snapshot taken when the message starts: a second echo may overwrite
+    // det_window/det_angle while this line is still being sent.
+    reg [11:0] msg_window;
+    reg [5:0]  msg_angle;
 
     reg [7:0] msg_byte;
 
@@ -255,12 +260,12 @@ module measurement_controller #(
             MSG_DETECT: begin
                 case (msg_idx)
                     3'd0:    msg_byte = "D";
-                    3'd1:    msg_byte = hex(det_window[11:8]);
-                    3'd2:    msg_byte = hex(det_window[7:4]);
-                    3'd3:    msg_byte = hex(det_window[3:0]);
+                    3'd1:    msg_byte = hex(msg_window[11:8]);
+                    3'd2:    msg_byte = hex(msg_window[7:4]);
+                    3'd3:    msg_byte = hex(msg_window[3:0]);
                     3'd4:    msg_byte = " ";
-                    3'd5:    msg_byte = hex({2'b00, det_angle[5:4]});
-                    3'd6:    msg_byte = hex(det_angle[3:0]);
+                    3'd5:    msg_byte = hex({2'b00, msg_angle[5:4]});
+                    3'd6:    msg_byte = hex(msg_angle[3:0]);
                     default: msg_byte = 8'h0A;
                 endcase
             end
@@ -277,16 +282,20 @@ module measurement_controller #(
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            msg_kind <= MSG_NONE;
-            msg_idx  <= 3'd0;
-            tx_push  <= 1'b0;
-            tx_data  <= 8'd0;
+            msg_kind   <= MSG_NONE;
+            msg_idx    <= 3'd0;
+            tx_push    <= 1'b0;
+            tx_data    <= 8'd0;
+            msg_window <= 12'd0;
+            msg_angle  <= 6'd0;
         end
         else begin
             tx_push <= 1'b0;
 
             if (msg_idle) begin
-                msg_idx <= 3'd0;
+                msg_idx    <= 3'd0;
+                msg_window <= det_window;
+                msg_angle  <= det_angle;
                 if      (msg_take_busy)   msg_kind <= MSG_BUSY;
                 else if (msg_take_status) msg_kind <= MSG_STATUS;
                 else if (msg_take_detect) msg_kind <= MSG_DETECT;

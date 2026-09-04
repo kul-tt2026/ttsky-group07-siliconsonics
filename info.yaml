@@ -1,9 +1,9 @@
 # Tiny Tapeout project information
 project:
-  title:        "ultrasonic phased array sonar"      # Project title
+  title:        "ultrasonic sonar: range and bearing"      # Project title
   author:       "SiliconSonics"      # Your name
   discord:      ""      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
-  description:  "Digital sonar processor. Drives a 40 kHz ultrasonic transducer, demodulates the returning echo from two PDM microphones with square-wave I/Q correlators, and reports echo distance and bearing on parallel pins and over a 115200 baud UART. Supports single-shot and once-per-second automatic measurement."      # One line description of what your project does
+  description:  "Digital sonar processor. Drives a 40 kHz ultrasonic transducer, demodulates the returning echo from two PDM microphones with square-wave I/Q correlators, and reports echo distance and bearing on parallel pins and over a 115200 baud UART. Supports single-shot and once-per-second automatic measurement, and single-microphone boards."      # One line description of what your project does
   language:     "Verilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
   clock_hz:     40000000       # Clock frequency in Hz (or 0 if not applicable)
 
@@ -44,12 +44,12 @@ pinout:
   ui[3]: "mux_sel"
   ui[4]: "uart_rx"
   ui[5]: "auto_enable"
-  ui[6]: ""
+  ui[6]: "single_mic"
   ui[7]: "restart_mic"
 
   # Outputs
   # mux_sel low : data_out = echo_window_index[11:0]
-  # mux_sel high: data_out = {auto_mode, mic_ready, busy, result_ready, 2'b00, angle[5:0]}
+  # mux_sel high: data_out = {auto_mode, mic_ready, busy, result_ready, 1'b0, single_mic, angle[5:0]}
   uo[0]: "data_out[0]"
   uo[1]: "data_out[1]"
   uo[2]: "data_out[2]"

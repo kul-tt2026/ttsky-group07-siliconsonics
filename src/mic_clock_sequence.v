@@ -44,11 +44,10 @@ module ultrasonic_mic_powerup_sequence (
             mic_clk <= 1'b0;
         end
         else begin
-            if (us_mode == 1'b0 && cycle_count == 4'd9) begin // 2MHz -> half period = 10 cycles
-                cycle_count <= 4'd0;
-                mic_clk <= ~mic_clk;
-            end
-            else if (us_mode == 1'b1 && cycle_count == 4'd4) begin // 4MHz -> half period = 5 cycles
+            // 2 MHz: half period = 10 cycles, 4 MHz: 5 cycles. ">=" so the
+            // switch to ultrasonic mode cannot stretch the half period in
+            // progress past its new length.
+            if (cycle_count >= (us_mode ? 4'd4 : 4'd9)) begin
                 cycle_count <= 4'd0;
                 mic_clk <= ~mic_clk;
             end

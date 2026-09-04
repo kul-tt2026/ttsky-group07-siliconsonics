@@ -18,6 +18,9 @@ Scenario:
      Wait one more auto period -> another ping, another "N\\n".
   7. 'S' -> "SR\\n"; wait an auto period -> no ping.
   8. Pin-driven ping (ui_in[0] rising edge) -> burst.
+
+A second test covers single-microphone boards (ui_in[6] high): only
+mic1 is driven, the range must still be reported and the bearing reads 0.
 """
 
 from pathlib import Path
@@ -42,6 +45,7 @@ UI_MIC2  = 2
 UI_MUX   = 3
 UI_RX    = 4
 UI_AUTO  = 5
+UI_SINGLE_MIC = 6
 UI_RST_MIC = 7
 
 UIO_TX      = 4
@@ -176,8 +180,9 @@ def model_first_echo(b1, b2):
     for run in runs:
         if len(run) < MIN_WIDTH or run[0] < BLANK:
             continue
-        p1 = np.arctan2(Q1[run].sum(), I1[run].sum()) % (2 * np.pi)
-        p2 = np.arctan2(Q2[run].sum(), I2[run].sum()) % (2 * np.pi)
+        # phase = atan2(I, Q): I carries sin(phi), Q carries cos(phi)
+        p1 = np.arctan2(I1[run].sum(), Q1[run].sum()) % (2 * np.pi)
+        p2 = np.arctan2(I2[run].sum(), Q2[run].sum()) % (2 * np.pi)
         d = (int(round(p2 / (2 * np.pi) * 4096)) - int(round(p1 / (2 * np.pi) * 4096))) & 0xFFF
         ang = calculate_angle((d >> 6) << 6)
         return int(run[0]) + 1, (0 if ang is None else int(ang))   # +1: hw counter is 1-based
@@ -323,3 +328,60 @@ async def test_uart_measurement_protocol(dut):
     assert line == "N\n"
 
     dut._log.info("ALL PROTOCOL CHECKS PASSED")
+
+
+# ---------------------------------------------------------------------------
+@cocotb.test()
+async def test_single_mic_mode(dut):
+    """Only mic1 is fitted. With ui_in[6] high the chip must still report the
+    range; with it low the same board detects nothing, because the detector
+    needs signal on both mics."""
+    cocotb.start_soon(Clock(dut.clk, CLK_NS, unit="ns").start())
+
+    dut.ena.value = 1
+    dut.ui_in.value = 1 << UI_RX
+    dut.uio_in.value = 0
+    dut.rst_n.value = 0
+    await Timer(500, unit="ns")
+    dut.rst_n.value = 1
+    await RisingEdge(dut.clk)
+
+    uart = UartSniffer(dut)
+
+    while int(dut.user_project.main_inst.mic_ready.value) == 0:
+        await Timer(1, unit="ms")
+
+    cap = Path(__file__).resolve().parent / "data" / "2026-07-29_example-synthetic" / "raw" / "capture_001.pdm"
+    b1 = load_bits(cap, 0)
+    silent = [0] * len(b1)
+    exp_win, _ = model_first_echo(b1, b1)
+    assert exp_win is not None, "model found no echo in the capture"
+    n_feed = (exp_win + 40) * WINDOW
+
+    async def ping_and_feed():
+        await RisingEdge(dut.user_project.main_inst.start_pulse)
+        await RisingEdge(dut.clk)
+        await feed_pdm(dut, b1, silent, n_feed)
+
+    # ---- single_mic = 1: mic2 pin idle, range still reported, angle 0 ----
+    set_ui_bit(dut, UI_SINGLE_MIC, 1)
+    await Timer(1, unit="ns")          # let the write land before the next read-modify-write
+    feeder = cocotb.start_soon(ping_and_feed())
+    await uart_send(dut, ord("P"))
+    line = await uart.expect_line(MEAS_MS + 10)
+    await feeder
+    assert line.startswith("D") and len(line) == 8, f"bad detect line {line!r}"
+    assert int(line[1:4], 16) == exp_win, f"window: expected {exp_win}, got {line[1:4]}"
+    assert int(line[5:7], 16) == 0, f"single-mic bearing must be 0, got {line[5:7]}"
+
+    await Timer(LOCKOUT_MS + 5, unit="ms")
+    uart.buf.clear()
+
+    # ---- single_mic = 0: the same one-mic board detects nothing ----
+    set_ui_bit(dut, UI_SINGLE_MIC, 0)
+    await Timer(1, unit="ns")
+    feeder = cocotb.start_soon(ping_and_feed())
+    await uart_send(dut, ord("P"))
+    line = await uart.expect_line(MEAS_MS + 10)
+    await feeder
+    assert line == "N\n", f"expected 'N\\n' with mic2 unconnected, got {line!r}"
